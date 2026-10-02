@@ -7,7 +7,7 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "coverage": "hardhat coverage",
-    "node": "hardhat node --hostname 127.0.0.1 --port 7545", // Resolves path handling error with past hardhat-node.cjs under /tools
+    "node": "hardhat node --hostname 127.0.0.1 --port 7545",
     "deploy": "hardhat run scripts/deploy.js --network localhost",
     "seed": "hardhat run scripts/seed.js --network localhost",
     "slither": "slither . --config-file slither.config.json"

@@ -70,3 +70,130 @@ Dev mode uses the node's unlocked accounts (wallet menu to switch). Account #0 i
 
 ## Known gaps
 Logo is a placeholder wordmark. MetaMask, camera scanning, Docker/Kubo and the Dev Container were not exercised in the build sandbox. Windows was not tested. The Slither CI step is configured but not yet run.
+
+
+# Contributor's Local Development Environment Guide
+
+## 1. System Prerequisites
+
+Ensure your local machine has the following tools installed before beginning the setup process:
+
+* **Node.js & npm:** The project utilizes Node.js development environments, tracked via version configuration files (`.nvmrc` and `.node-version`).
+
+
+* **Docker & Docker Compose:** Required if you plan to run persistent instances of the local IPFS daemon and Ethereum node.
+
+
+* **Git:** Required to pull the source code.
+
+## 2. Cloning & Initial Setup
+
+Pull the project directly from the source repository and initialize the root configuration.
+
+1. **Clone the repository:**
+```bash
+git clone 
+cd sourcify
+
+```
+
+
+2. **Configure Environment Variables:**
+Copy the sample environment file to create your active, local configuration file.
+
+
+```bash
+cp .env.example .env
+
+```
+
+
+3. **Install Dependencies:**
+Install the required Node.js modules for the entire monorepo. This handles dependencies for the root infrastructure, the Angular frontend (`web/`), and the Hardhat environment (`contracts/`).
+
+
+```bash
+npm install
+
+```
+
+
+
+## 3. Running the Local Infrastructure
+
+The repository includes an orchestration script that spins up all necessary services for rapid local development testing.
+
+1. **Start the Development Servers:**
+Run the core development command from the root directory.
+
+
+```bash
+npm run dev
+
+```
+
+
+This utilizes the `tools/dev.mjs` script to automatically initialize three primary systems:
+
+
+* The local, in-memory Hardhat Ethereum node (`tools/hardhat-node.cjs`).
+
+
+* The local IPFS mock server (`tools/ipfs-mock.mjs`) for off-chain payload storage.
+
+
+* The Angular development server (`web/`) to serve the UI frontend.
+
+
+
+
+
+## 4. Deploying Smart Contracts & Seeding Data
+
+Because the standard `npm run dev` process utilizes an in-memory EVM network, the blockchain state (including deployed contracts and issued certificates) resets every time the server terminates. You must explicitly deploy the smart contracts on every fresh boot.
+
+1. Open a **new terminal window** while the `npm run dev` process continues to run in the background.
+2. Navigate to the smart contracts subdirectory:
+
+
+```bash
+cd contracts
+
+```
+
+
+3. **Deploy the Contract:**
+Execute the deployment script to compile and push the `SourcifyRegistry.sol` contract to your active local node.
+
+
+```bash
+npx hardhat run scripts/deploy.js --network localhost
+
+```
+
+
+4. **Seed Test Certificates (Recommended):**
+Run the provided seeding utility to automatically populate the blockchain with dummy data and test wallets, ensuring the frontend dashboard is immediately usable for UI testing.
+
+
+```bash
+npx hardhat run scripts/seed.js --network localhost
+
+```
+
+
+
+## 5. Alternative Setup: Persistent Infrastructure via Docker
+
+If you require your locally issued certificates to persist across server reboots, bypass the in-memory Node.js scripts and utilize the included containerized infrastructure.
+
+1. Start the infrastructure via Docker Compose from the root directory:
+
+
+```bash
+docker-compose up -d
+
+```
+
+
+This command orchestrates a standardized environment, utilizing `tools/kubo-init.sh` to initialize the IPFS daemon, and writes the blockchain state and pinned files to persistent Docker volumes so data is not lost upon exit.
