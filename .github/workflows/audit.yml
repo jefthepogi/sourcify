@@ -1,0 +1,14 @@
+name: dependency-audit
+on:
+  schedule: [{ cron: "0 6 * * 1" }]   # weekly, Monday 06:00 UTC (SPMP TR-42)
+  workflow_dispatch:
+jobs:
+  npm-audit:
+    runs-on: ubuntu-latest
+    strategy: { matrix: { pkg: [contracts, web] } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc }
+      - run: npm --prefix ${{ matrix.pkg }} ci
+      - run: npm --prefix ${{ matrix.pkg }} audit --audit-level=high

@@ -1,0 +1,36 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: npm, cache-dependency-path: contracts/package-lock.json }
+      - run: npm --prefix contracts ci
+      - run: npm --prefix contracts test
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Static analysis (Slither, pinned) — fails on Medium or higher
+        run: |
+          pip install -r tools/requirements-audit.txt
+          solc-select install 0.8.24 && solc-select use 0.8.24
+          cd contracts && slither . --config-file slither.config.json --fail-medium
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: npm --prefix web ci
+      - run: npm --prefix web test
+      - run: npm --prefix web run build
+  clean-clone-smoke:
+    name: environment reproduces from a clean clone
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc }
+      - run: npm run setup
+      - run: npm run smoke

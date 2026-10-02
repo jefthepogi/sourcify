@@ -1,0 +1,47 @@
+<h1>{{ title()[0] }}</h1><p class="sub0">{{ title()[1] }}</p>
+<div class="bar"><div class="input search"><app-icon name="search" [size]="15" /><input type="search" placeholder="Search name, program, hash" [value]="q()" (input)="q.set($any($event.target).value)" aria-label="Search" /></div>
+  <button class="btn sm" (click)="ledger.refresh()" [disabled]="ledger.loading()"><app-icon name="refresh-cw" [size]="13" />{{ ledger.loading() ? 'Loading…' : 'Refresh' }}</button></div>
+@if (ledger.error()) { <div class="card"><div class="empty">{{ ledger.error() }}</div></div> }
+@if (message()) { <p class="err">{{ message() }}</p> }
+<div class="card tr">
+  @switch (v()) {
+    @case ('credentials') {
+      <table class="table"><thead><tr><th>Credential</th><th>Recipient</th><th>docHash</th><th>Issued</th><th>Status</th><th></th></tr></thead><tbody>
+        @for (e of rows(); track e.docHash) {
+          <tr><td>{{ e.manifest?.credential?.program ?? '—' }}<div class="sub">{{ e.issuerLabel }}</div></td><td>{{ e.manifest?.recipient?.name ?? 'Metadata unavailable' }}</td>
+            <td class="mono">{{ short(e.docHash, 8, 6) }}</td><td>{{ fmtDate(e.issuedAt) }}</td>
+            <td><span class="badge" [class.ok]="e.status === 'valid'" [class.bad]="e.status === 'revoked'" [class.warn]="e.status === 'expired'">{{ e.status }}</span></td>
+            <td class="acts">
+              <a class="btn sm" [href]="'/verify/' + e.docHash" target="_blank" rel="noopener">Verify</a>
+              @if (canRevoke(e)) {
+                @if (revoking() === e.docHash) {
+                  <div class="rv"><input placeholder="Reason (optional)" [value]="reason()" (input)="reason.set($any($event.target).value)" aria-label="Revocation reason" /><button class="btn sm" (click)="revoke(e)" [disabled]="busy()">Confirm</button><button class="btn sm" (click)="revoking.set(null)">Cancel</button></div>
+                } @else { <button class="btn sm" (click)="revoking.set(e.docHash)"><app-icon name="ban" [size]="13" />Revoke</button> }
+              }
+            </td></tr>
+        } @empty { <tr><td colspan="6" class="empty">No credentials found.</td></tr> }
+      </tbody></table>
+    }
+    @case ('recipients') {
+      <table class="table"><thead><tr><th>Recipient</th><th>DID</th><th>Credentials</th><th>Last issued</th></tr></thead><tbody>
+        @for (r of recipients(); track r.name) { <tr><td>{{ r.name }}</td><td class="mono">{{ short(r.did, 12, 6) }}</td><td>{{ r.count }}</td><td>{{ fmtDate(r.last) }}</td></tr> }
+        @empty { <tr><td colspan="4" class="empty">No recipients yet.</td></tr> }
+      </tbody></table>
+    }
+    @case ('transactions') {
+      <table class="table"><thead><tr><th>Transaction</th><th>Block</th><th>Record</th><th>Status</th></tr></thead><tbody>
+        @for (e of rows(); track e.txHash) { <tr><td class="mono">{{ short(e.txHash, 10, 6) }}</td><td class="mono">{{ e.blockNumber }}</td><td>{{ e.manifest?.credential?.program ?? short(e.docHash, 8, 6) }}</td>
+          <td><span class="badge ok">Confirmed</span></td></tr> }
+        @empty { <tr><td colspan="4" class="empty">No transactions yet.</td></tr> }
+      </tbody></table>
+    }
+    @case ('audit') {
+      <table class="table"><thead><tr><th>Event</th><th>Subject</th><th>Detail</th><th>Block</th><th>Time</th></tr></thead><tbody>
+        @for (a of ledger.audit(); track a.txHash + a.logIndex) { <tr><td><span class="badge" [class.ok]="a.kind === 'issued' || a.kind === 'issuer-authorized'" [class.bad]="a.kind === 'revoked' || a.kind === 'issuer-deauthorized'">{{ kindLabel(a.kind) }}</span></td>
+          <td class="mono">{{ short(a.subject, 8, 6) }}<div class="sub">{{ a.actor ? 'by ' + short(a.actor, 6, 4) : '' }}</div></td><td class="sub" style="max-width:280px;overflow:hidden;text-overflow:ellipsis">{{ a.detail }}</td>
+          <td class="mono">{{ a.blockNumber }}</td><td>{{ fmtDate(a.timestamp) }}</td></tr> }
+        @empty { <tr><td colspan="5" class="empty">No events recorded.</td></tr> }
+      </tbody></table>
+    }
+  }
+</div>

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.angular/
+contracts/cache/
+contracts/artifacts/
+.ipfs-mock/
+web/public/deployment/deployment.json
+*.log
+.env
+web/public/config.json
