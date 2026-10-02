@@ -14,8 +14,15 @@ const warn = (m) => console.log(`  warn  ${m}`);
 const bad = (m) => { failed = true; console.log(`  FAIL  ${m}`); };
 
 console.log('Sourcify environment check');
-const [maj, min] = process.versions.node.split('.').map(Number);
-(maj === 22 && min >= 12) ? ok(`Node ${process.versions.node} (required >=22.12 <23, see .nvmrc)`) : bad(`Node ${process.versions.node}: need >=22.12 <23. Run \`nvm use\` (or fnm/volta).`);
+const [maj] = process.versions.node.split('.').map(Number);
+
+maj === 24
+  ? ok(`Node ${process.versions.node} (required 24.x, see .nvmrc)`)
+  : bad(
+      `Node ${process.versions.node}: need Node 24.x. ` +
+      'Activate the project environment.'
+    );
+  
 try { const n = Number(execSync('npm -v').toString().split('.')[0]); n >= 10 ? ok(`npm ${n}.x`) : bad('npm >= 10 required'); } catch { bad('npm not found'); }
 for (const d of ['contracts', 'web']) existsSync(join(env.root, d, 'package-lock.json')) ? ok(`${d}/package-lock.json present`) : bad(`${d}/package-lock.json missing`);
 for (const d of ['contracts', 'web']) existsSync(join(env.root, d, 'node_modules')) ? ok(`${d} dependencies installed`) : (preInstall ? ok(`${d} dependencies will be installed next`) : warn(`${d} dependencies not installed — run \`npm run setup\``));
