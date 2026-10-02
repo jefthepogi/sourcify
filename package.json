@@ -5,7 +5,7 @@
   "description": "Sourcify \u2014 lightweight decentralized certificate signing and verification prototype",
   "scripts": {
     "doctor": "node tools/doctor.mjs",
-    "setup": "node tools/doctor.mjs && npm --prefix contracts ci && npm --prefix web ci",
+    "setup": "node tools/doctor.mjs --pre-install && npm --prefix contracts ci && npm --prefix web ci",
     "dev": "node tools/dev.mjs",
     "chain": "npm --prefix contracts run node",
     "ipfs:mock": "node tools/ipfs-mock.mjs",

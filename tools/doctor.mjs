@@ -7,6 +7,7 @@ import { execSync } from 'node:child_process';
 import { join } from 'node:path';
 
 const env = createRequire(import.meta.url)('./load-env.cjs');
+const preInstall = process.argv.includes('--pre-install');
 let failed = false;
 const ok = (m) => console.log(`  ok    ${m}`);
 const warn = (m) => console.log(`  warn  ${m}`);
