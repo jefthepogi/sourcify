@@ -20,7 +20,7 @@ maj === 24
   ? ok(`Node ${process.versions.node} (required 24.x, see .nvmrc)`)
   : bad(
       `Node ${process.versions.node}: need Node 24.x. ` +
-      'Activate the project environment.'
+      'Activate the Sourcify project conda environment.'
     );
   
 try { const n = Number(execSync('npm -v').toString().split('.')[0]); n >= 10 ? ok(`npm ${n}.x`) : bad('npm >= 10 required'); } catch { bad('npm not found'); }
