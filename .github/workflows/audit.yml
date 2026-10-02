@@ -8,7 +8,7 @@ jobs:
     strategy: { matrix: { pkg: [contracts, web] } }
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version-file: .nvmrc }
       - run: npm --prefix ${{ matrix.pkg }} ci
       - run: npm --prefix ${{ matrix.pkg }} audit --audit-level=high
