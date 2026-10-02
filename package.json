@@ -19,7 +19,7 @@
     "bench:ipfs": "node tools/bench-ipfs.mjs"
   },
   "engines": {
-    "node": ">=22.12.0 <23",
+    "node": ">=24 <25",
     "npm": ">=10"
   }
 }
