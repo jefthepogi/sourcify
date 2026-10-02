@@ -1,0 +1,11 @@
+{
+  "name": "Sourcify",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "forwardPorts": [4200, 7545, 5001, 8080],
+  "postCreateCommand": "npm run setup",
+  "customizations": {
+    "vscode": {
+      "extensions": ["angular.ng-template", "NomicFoundation.hardhat-solidity", "esbenp.prettier-vscode", "editorconfig.editorconfig"]
+    }
+  }
+}

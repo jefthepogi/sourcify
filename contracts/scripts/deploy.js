@@ -8,7 +8,7 @@ const OUT_DIR = path.resolve(__dirname, "../../web/public/deployment");
 async function main() {
   const [deployer] = await ethers.getSigners();
   const network = await ethers.provider.getNetwork();
-  const name = process.env.INSTITUTION_NAME || "Northbridge University";
+  const name = require("../../tools/load-env.cjs").institution;
 
   const registry = await (await ethers.getContractFactory("SourcifyRegistry")).deploy(deployer.address, name, 0);
   await registry.waitForDeployment();

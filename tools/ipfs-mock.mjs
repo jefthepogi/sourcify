@@ -7,9 +7,12 @@ import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { createRequire } from 'node:module';
 
-const API_PORT = Number(process.env.IPFS_API_PORT ?? 5001);
-const GATEWAY_PORT = Number(process.env.IPFS_GATEWAY_PORT ?? 8080);
+const e = createRequire(import.meta.url)('./load-env.cjs');
+
+const API_PORT = Number(process.env.IPFS_API_PORT ?? e.ports.ipfsApi);
+const GATEWAY_PORT = Number(process.env.IPFS_GATEWAY_PORT ?? e.ports.gateway);
 const DIR = process.env.IPFS_MOCK_DIR ?? join(process.cwd(), '.ipfs-mock');
 mkdirSync(DIR, { recursive: true });
 

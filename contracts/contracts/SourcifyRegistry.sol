@@ -34,6 +34,7 @@ contract SourcifyRegistry is AccessControlDefaultAdminRules {
     }
 
     mapping(bytes32 docHash => Certificate) private _certificates;
+    mapping(bytes32 docHash => bool) private _certificateExists;
     mapping(address issuer => string name) private _issuerNames;
 
     event IssuerAuthorized(address indexed issuer, string name);
@@ -99,8 +100,10 @@ contract SourcifyRegistry is AccessControlDefaultAdminRules {
         if (docHash == bytes32(0)) revert InvalidDocHash();
         uint256 len = bytes(metadataCID).length;
         if (len == 0 || len > MAX_CID_LENGTH) revert InvalidCID();
-        if (_certificates[docHash].issuedAt != 0) revert AlreadyRegistered(docHash);
+        if (_certificateExists[docHash]) revert AlreadyRegistered(docHash);
         if (expiresAt != 0 && expiresAt <= block.timestamp) revert InvalidExpiry();
+
+        _certificateExists[docHash] = true;
 
         _certificates[docHash] = Certificate({
             issuer: msg.sender,
@@ -115,7 +118,7 @@ contract SourcifyRegistry is AccessControlDefaultAdminRules {
     /// @notice The contract owner or the original issuer may revoke. Revocation is permanent.
     function revokeCertificate(bytes32 docHash, string calldata reason) external {
         Certificate storage cert = _certificates[docHash];
-        if (cert.issuedAt == 0) revert UnknownCertificate(docHash);
+        if (!_certificateExists[docHash]) revert UnknownCertificate(docHash);
         if (cert.revokedAt != 0) revert AlreadyRevoked(docHash);
         if (msg.sender != cert.issuer && !hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) revert NotAllowedToRevoke();
 
@@ -132,7 +135,9 @@ contract SourcifyRegistry is AccessControlDefaultAdminRules {
         bytes32 docHash
     ) external view returns (Status status, Certificate memory certificate, string memory issuerLabel) {
         certificate = _certificates[docHash];
-        if (certificate.issuedAt == 0) return (Status.NotFound, certificate, "");
+        if (!_certificateExists[docHash]) {
+            return (Status.NotFound, certificate, "");
+        }
         issuerLabel = _issuerNames[certificate.issuer];
         if (certificate.revokedAt != 0) status = Status.Revoked;
         else if (certificate.expiresAt != 0 && certificate.expiresAt <= block.timestamp) status = Status.Expired;

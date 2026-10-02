@@ -1,0 +1,7 @@
+name: sourcify-cl
+channels:
+  - conda-forge
+
+dependencies:
+  - nodejs=24.21.0
+  - git

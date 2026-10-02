@@ -1,27 +1,30 @@
 require("@nomicfoundation/hardhat-ethers");
 require("@nomicfoundation/hardhat-chai-matchers");
 require("@nomicfoundation/hardhat-network-helpers");
-const path = require("path");
+const env = require("../tools/load-env.cjs");
 const { subtask } = require("hardhat/config");
 const { TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD } = require("hardhat/builtin-tasks/task-names");
 
-const SOLC_VERSION = "0.8.24";
+const SOLC_VERSION = "0.8.24"; // keep in sync with `solc` in package.json and the pragma
 
-// Offline / restricted-network fallback: compile with the pinned `solc` npm package (solc-js)
-// instead of downloading a native compiler. Enable with `SOLCJS=1`.
-if (process.env.SOLCJS) {
-  subtask(TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD, async (args, _hre, runSuper) => {
-    if (args.solcVersion !== SOLC_VERSION) return runSuper();
-    return {
-      compilerPath: require.resolve("solc/soljson.js"),
-      isSolcJs: true,
-      version: SOLC_VERSION,
-      longVersion: require("solc/package.json").version,
-    };
+// Compiler: native solc is downloaded by Hardhat; if that is impossible (offline, proxy, blocked host) we
+// fall back to the exact same version shipped in the pinned `solc` npm package (solc-js). Force it with SOLCJS=1.
+subtask(TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD, async (args, _hre, runSuper) => {
+  if (args.solcVersion !== SOLC_VERSION) return runSuper();
+  const solcJs = () => ({
+    compilerPath: require.resolve("solc/soljson.js"),
+    isSolcJs: true,
+    version: SOLC_VERSION,
+    longVersion: require("solc/package.json").version,
   });
-}
-
-const RPC_PORT = process.env.SOURCIFY_RPC_PORT || "7545";
+  if (process.env.SOLCJS === "1") return solcJs();
+  try {
+    return await runSuper();
+  } catch {
+    console.warn(`[sourcify] could not download native solc ${SOLC_VERSION}; using the pinned solc-js package instead`);
+    return solcJs();
+  }
+});
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -31,11 +34,11 @@ module.exports = {
   },
   networks: {
     hardhat: {
-      chainId: 1337, // matches the chain ID shown in the approved UI design
+      chainId: env.chainId, // default 1337, matches the approved UI design
       initialBaseFeePerGas: 0, // zero-cost local network
       allowBlocksWithSameTimestamp: true,
     },
-    localhost: { url: `http://127.0.0.1:${RPC_PORT}`, chainId: 1337 },
+    localhost: { url: `http://127.0.0.1:${env.ports.rpc}`, chainId: env.chainId },
   },
   paths: { sources: "./contracts", tests: "./test", cache: "./cache", artifacts: "./artifacts" },
   mocha: { timeout: 60000 },

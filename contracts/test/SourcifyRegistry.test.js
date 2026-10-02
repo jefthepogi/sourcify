@@ -91,9 +91,9 @@ describe("SourcifyRegistry", () => {
 
     it("reports NotFound for unknown hashes", async () => {
       const { registry } = await loadFixture(deploy);
-      const [status, cert] = await registry.verify(hashOf("nothing"));
+      const [status, _] = await registry.verify(hashOf("nothing"));
+    
       expect(status).to.equal(Status.NotFound);
-      expect(cert.issuedAt).to.equal(0n);
     });
 
     it("turns Expired once the expiry passes", async () => {

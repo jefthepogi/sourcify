@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // IPFS metadata retrieval latency over N trials (working target ≤ 500 ms mean; adjust to your SPMP acceptance criterion).
-const API = process.env.IPFS_API ?? 'http://127.0.0.1:5001';
-const GATEWAY = process.env.IPFS_GATEWAY ?? 'http://127.0.0.1:8080/ipfs';
+import { createRequire } from 'node:module';
+const e = createRequire(import.meta.url)('./load-env.cjs');
+const API = process.env.IPFS_API ?? `http://127.0.0.1:${e.ports.ipfsApi}`;
+const GATEWAY = process.env.IPFS_GATEWAY ?? `http://127.0.0.1:${e.ports.gateway}/ipfs`;
 const N = Number(process.env.TRIALS ?? 20);
 const payload = JSON.stringify({ schema: 'sourcify.credential.v1', bench: true, at: Date.now(), pad: 'x'.repeat(900) });
 
