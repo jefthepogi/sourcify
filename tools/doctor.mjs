@@ -18,7 +18,7 @@ const [maj, min] = process.versions.node.split('.').map(Number);
 (maj === 22 && min >= 12) ? ok(`Node ${process.versions.node} (required >=22.12 <23, see .nvmrc)`) : bad(`Node ${process.versions.node}: need >=22.12 <23. Run \`nvm use\` (or fnm/volta).`);
 try { const n = Number(execSync('npm -v').toString().split('.')[0]); n >= 10 ? ok(`npm ${n}.x`) : bad('npm >= 10 required'); } catch { bad('npm not found'); }
 for (const d of ['contracts', 'web']) existsSync(join(env.root, d, 'package-lock.json')) ? ok(`${d}/package-lock.json present`) : bad(`${d}/package-lock.json missing`);
-for (const d of ['contracts', 'web']) existsSync(join(env.root, d, 'node_modules')) ? ok(`${d} dependencies installed`) : warn(`${d} dependencies not installed — run \`npm run setup\``);
+for (const d of ['contracts', 'web']) existsSync(join(env.root, d, 'node_modules')) ? ok(`${d} dependencies installed`) : (preInstall ? ok(`${d} dependencies will be installed next`) : warn(`${d} dependencies not installed — run \`npm run setup\``));
 
 const free = (port) => new Promise((res) => { const s = createServer().once('error', () => res(false)).once('listening', () => s.close(() => res(true))); s.listen(port, '127.0.0.1'); });
 for (const [name, port] of [['chain RPC', env.ports.rpc], ['IPFS API', env.ports.ipfsApi], ['IPFS gateway', env.ports.gateway], ['web dev server', env.ports.web]]) {
