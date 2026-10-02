@@ -1,0 +1,17 @@
+{
+  "name": "sourcify",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sourcify \u2014 lightweight decentralized certificate signing and verification prototype",
+  "scripts": {
+    "setup": "npm --prefix contracts install && npm --prefix web install",
+    "chain": "npm --prefix contracts run node",
+    "ipfs:mock": "node tools/ipfs-mock.mjs",
+    "deploy": "npm --prefix contracts run deploy",
+    "seed": "npm --prefix contracts run seed",
+    "web": "npm --prefix web start",
+    "dev": "node tools/dev.mjs",
+    "test": "npm --prefix contracts test && npm --prefix web test",
+    "bench:ipfs": "node tools/bench-ipfs.mjs"
+  }
+}

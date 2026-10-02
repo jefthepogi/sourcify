@@ -1,0 +1,42 @@
+<header class="top">
+  <app-brand />
+  <div class="status">
+    <span class="pill"><span class="dot" [class.ok]="health.chainUp()"></span>{{ cfg.chainName }} · Chain {{ cfg.chainId }}</span>
+    <div class="wallet-wrap">
+      <button class="wallet" (click)="menuOpen.set(!menuOpen())" aria-haspopup="menu" [attr.aria-expanded]="menuOpen()">
+        <span class="wsym"><app-icon name="wallet-cards" [size]="13" /></span>
+        <span class="wid"><b class="mono">{{ short(chain.account(), 6, 4) }}</b><small>{{ chain.roleLabel() }}</small></span>
+        <app-icon name="chevron-down" [size]="13" />
+      </button>
+      @if (menuOpen()) {
+        <div class="menu" role="menu">
+          <p>Local development accounts</p>
+          @for (a of chain.devAccounts(); track a; let i = $index) {
+            <button role="menuitem" (click)="pick('dev', i)" [class.sel]="chain.mode() === 'dev' && chain.account() === a"><span class="mono">{{ short(a, 8, 6) }}</span><small>#{{ i }}</small></button>
+          }
+          @if (chain.hasInjected) { <hr><button role="menuitem" (click)="pick('injected')">Use MetaMask</button> }
+        </div>
+      }
+    </div>
+    <span class="bell" aria-label="Notifications"><app-icon name="bell" [size]="17" /></span>
+    <span class="avatar" aria-hidden="true">{{ initials() }}</span>
+  </div>
+</header>
+<div class="body">
+  <aside>
+    <nav aria-label="Primary">
+      <p class="section">Workspace</p>
+      @for (n of nav; track n.path) {
+        <a [routerLink]="n.path" routerLinkActive="active" class="nav"><app-icon [name]="n.icon" [size]="17" /><span>{{ n.label }}</span><i></i></a>
+      }
+    </nav>
+    <div class="env">
+      <div class="env-h"><b>Local services</b><span class="badge upper" [class.ok]="health.allUp()" [class.bad]="health.blocking()"><span class="dot"></span>{{ stateLabel() }}</span></div>
+      @for (s of health.services(); track s.id) {
+        <div class="svc mono"><span>{{ s.id === 'chain' ? 'CHAIN' : s.id === 'ipfs' ? 'IPFS' : 'REGISTRY' }}</span><span [class.good]="s.state === 'up'" [class.badc]="s.state === 'down' || s.state === 'timeout'">{{ s.latencyMs != null ? s.latencyMs + 'ms' : s.state === 'up' ? 'up' : s.state }}</span></div>
+      }
+    </div>
+  </aside>
+  <main><router-outlet /></main>
+</div>
+@if (health.blocking()) { <app-recovery-modal /> }

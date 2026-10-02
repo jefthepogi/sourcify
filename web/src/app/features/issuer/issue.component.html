@@ -1,0 +1,102 @@
+<div class="page-head">
+  <div>
+    <div class="crumbs"><span>Credential operations</span><span>/</span><b>New issuance</b></div>
+    <h1>Issue a credential</h1>
+    <p>Create the payload, pin metadata, and anchor an immutable verification record.</p>
+  </div>
+  <span class="draft"><app-icon name="cloud-check" [size]="14" />Draft saved {{ draftSavedAt() }}</span>
+</div>
+
+<div class="cols">
+  <form class="form" (ngSubmit)="openReview()" novalidate>
+    <section class="card">
+      <div class="card-head"><span class="ico"><app-icon name="user-round-check" /></span><div><h3>Recipient &amp; credential</h3><p>Identity and display data written to the credential payload.</p></div></div>
+      <div class="card-body">
+        <div class="row">
+          <div><label class="label" for="name">Recipient full name <span class="req">*</span></label>
+            <div class="input" [class.invalid]="err('name')"><app-icon name="user" [size]="15" /><input id="name" autocomplete="off" [value]="name()" (input)="input(name, $event)" placeholder="Amara Okafor" /></div>
+            @if (err('name')) { <div class="err">{{ err('name') }}</div> }</div>
+          <div><label class="label" for="type">Credential type <span class="req">*</span></label>
+            <div class="input"><select id="type" [value]="type()" (change)="input(type, $event)">@for (t of types; track t) { <option [selected]="t === type()">{{ t }}</option> }</select><app-icon name="chevron-down" [size]="14" /></div></div>
+        </div>
+        <div class="row">
+          <div><label class="label" for="email">Recipient email <span class="req">*</span></label>
+            <div class="input" [class.invalid]="err('email')"><app-icon name="mail" [size]="15" /><input id="email" type="email" [value]="email()" (input)="input(email, $event)" placeholder="name@example.edu" /></div>
+            @if (err('email')) { <div class="err">{{ err('email') }}</div> } @else { <div class="hint">Used to send the link. Never written to IPFS or the chain.</div> }</div>
+          <div><label class="label" for="did">Recipient DID</label>
+            <div class="input" [class.invalid]="err('did')"><app-icon name="fingerprint" [size]="15" /><input id="did" class="mono-v" [value]="did()" (input)="input(did, $event)" placeholder="did:ethr:0x…" /></div>
+            @if (err('did')) { <div class="err">{{ err('did') }}</div> }</div>
+        </div>
+        <div class="row">
+          <div><label class="label" for="program">Program / award <span class="req">*</span></label>
+            <div class="input" [class.invalid]="err('program')"><input id="program" [value]="program()" (input)="input(program, $event)" placeholder="MSc Data Science · Distinction" /></div>
+            @if (err('program')) { <div class="err">{{ err('program') }}</div> }</div>
+          <div><label class="label" for="date">Award date <span class="req">*</span></label>
+            <div class="input"><app-icon name="calendar" [size]="15" /><input id="date" type="date" [value]="awardDate()" (input)="input(awardDate, $event)" /></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><span class="ico"><app-icon name="file-lock-2" /></span><div><h3>Document &amp; storage</h3><p>Content addressing ensures the issued record resolves to the exact artifact.</p></div></div>
+      <div class="card-body">
+        <div>
+          <label class="label" for="file">Certificate file <span class="req">*</span></label>
+          <label class="drop" [class.invalid]="err('file')" for="file"><app-icon name="file-up" [size]="18" />
+            @if (file(); as f) { <span><b>{{ f.name }}</b> · {{ formatBytes(f.size) }}</span> } @else { <span>Choose the final, unstamped certificate (PDF or image)</span> }
+            <input id="file" type="file" class="sr-only" (change)="onFile($event)" /></label>
+          @if (err('file')) { <div class="err">{{ err('file') }}</div> }
+        </div>
+        <div>
+          <div class="label">docHash (Keccak-256)</div>
+          <div class="input readonly"><app-icon name="hash" [size]="15" /><input class="mono-v" readonly [value]="docHash() || 'Computed locally when a file is selected'" aria-label="docHash" /></div>
+          <div class="hint">Computed locally from the selected document · 32 bytes · the file never leaves this browser until you sign.</div>
+        </div>
+        <div class="row">
+          <div><div class="label">IPFS CID (metadata)</div><div class="input readonly"><app-icon name="boxes" [size]="15" /><input class="mono-v" readonly [value]="preview()?.metadataCID ? short(preview()!.metadataCID, 12, 6) : 'Generated after review'" aria-label="IPFS CID" /></div></div>
+          <div><div class="label">Metadata schema</div><div class="input readonly"><input class="mono-v" readonly value="sourcify.credential.v1" aria-label="Schema" /></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><span class="ico"><app-icon name="blocks" /></span><div><h3>On-chain controls</h3><p>Issuer policy, lifecycle, and immutable chain metadata.</p></div></div>
+      <div class="card-body"><div class="row">
+        <div><div class="label">Issuer contract</div><div class="input readonly"><app-icon name="file-code-2" [size]="15" /><input class="mono-v" readonly [value]="short(contract, 6, 4)" aria-label="Contract" /></div></div>
+        <div><label class="label" for="exp">Expiration</label><div class="input" [class.invalid]="err('expiry')"><app-icon name="calendar-clock" [size]="15" /><input id="exp" type="date" [value]="expiry()" (input)="input(expiry, $event)" /></div>
+          @if (err('expiry')) { <div class="err">{{ err('expiry') }}</div> } @else { <div class="hint">Leave empty for no expiration.</div> }</div>
+        <div><div class="label">Salt</div><div class="input readonly"><input class="mono-v" readonly [value]="short(salt(), 8, 4)" aria-label="Salt" /></div></div>
+      </div></div>
+    </section>
+  </form>
+
+  <aside class="review">
+    <div class="ready">
+      <div class="rh"><b>{{ ready() ? 'Ready to issue' : 'Complete the form' }}</b><span class="chip"><app-icon name="check" [size]="11" />{{ passed() }}/{{ checks().length }} checks</span></div>
+      <div class="kv"><span>Estimated gas</span><span class="mono">{{ gasText() }}</span></div>
+      <div class="kv"><span>Network</span><span class="mono">{{ chain.account() ? 'Chain 1337' : '—' }}</span></div>
+      <hr>
+      <button class="btn btn-primary btn-block" style="height:44px" type="button" (click)="openReview()" [disabled]="!ready()"><app-icon name="shield-check" [size]="17" />Review &amp; Issue Credential</button>
+      <p class="note">You will review every field before {{ chain.mode() === 'injected' ? 'MetaMask is opened' : 'the transaction is signed' }}.</p>
+      @if (previewError()) { <p class="note warn">{{ previewError() }}</p> }
+    </div>
+    <div class="card pf"><b>Preflight policy</b>
+      @for (c of checks(); track c.label) { <div class="pc"><span class="ck" [class.on]="c.ok"><app-icon [name]="c.ok ? 'check' : 'circle'" [size]="11" /></span>{{ c.label }}</div> }
+    </div>
+    <div class="card">
+      <div class="act-h"><div><h3>Recent issuance</h3><p>Receipt-backed activity from the registry contract</p></div><a routerLink="../audit" class="link">View audit log →</a></div>
+      <table class="table"><thead><tr><th>Record</th><th>docHash</th><th style="text-align:right">Status</th></tr></thead><tbody>
+        @for (r of recent(); track r.docHash) {
+          <tr><td><div>{{ r.manifest?.credential?.program ?? 'Credential' }}</div><div class="sub">{{ r.manifest?.recipient?.name ?? 'Metadata unavailable' }} · {{ ago(r.issuedAt) }}</div></td>
+            <td class="mono sub" style="white-space:nowrap">{{ short(r.docHash, 6, 4) }}</td>
+            <td style="text-align:right"><span class="badge" [class.ok]="r.status === 'valid'" [class.bad]="r.status === 'revoked'" [class.warn]="r.status === 'expired'">{{ r.status === 'valid' ? 'Confirmed' : r.status === 'revoked' ? 'Revoked' : 'Expired' }}</span></td></tr>
+        } @empty { <tr><td colspan="3" class="empty">No credentials issued yet.</td></tr> }
+      </tbody></table>
+    </div>
+  </aside>
+</div>
+
+@if (modal() === 'review' && prepared() && preview()) {
+  <app-review-modal [data]="prepared()!" [gas]="preview()!.gas" (cancel)="modal.set('none')" (confirm)="sign()" />
+}
+@if (modal() === 'progress') { <app-progress-modal (close)="closeProgress()" (retry)="sign()" /> }

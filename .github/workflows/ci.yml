@@ -1,0 +1,25 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm --prefix contracts ci || npm --prefix contracts install
+      - run: npm --prefix contracts test
+      - name: Static analysis (Slither)
+        run: |
+          pip install slither-analyzer solc-select
+          solc-select install 0.8.24 && solc-select use 0.8.24
+          cd contracts && slither . --config-file slither.config.json --fail-high
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm --prefix web ci || npm --prefix web install --legacy-peer-deps
+      - run: npm --prefix web test
+      - run: npm --prefix web run build

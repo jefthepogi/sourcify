@@ -1,0 +1,13 @@
+# Real IPFS (Kubo) node for local development. CORS is opened for the Angular dev origin only.
+services:
+  ipfs:
+    image: ipfs/kubo:v0.32.1
+    container_name: sourcify-ipfs
+    ports:
+      - "127.0.0.1:5001:5001"   # RPC API
+      - "127.0.0.1:8080:8080"   # Gateway
+    volumes:
+      - ipfs-data:/data/ipfs
+      - ./tools/kubo-init.sh:/container-init.d/001-sourcify.sh:ro
+volumes:
+  ipfs-data:
