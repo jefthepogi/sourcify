@@ -137,7 +137,7 @@ contract SourcifyRegistry is AccessControlDefaultAdminRules {
         certificate = _certificates[docHash];
         if (!_certificateExists[docHash]) {
             return (Status.NotFound, certificate, "");
-        }
+        }   
         issuerLabel = _issuerNames[certificate.issuer];
         if (certificate.revokedAt != 0) status = Status.Revoked;
         else if (certificate.expiresAt != 0 && certificate.expiresAt <= block.timestamp) status = Status.Expired;

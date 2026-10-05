@@ -21,5 +21,5 @@ module.exports = {
     gateway: Number(get("IPFS_GATEWAY_PORT", "8080")),
     web: 4200,
   },
-  institution: get("INSTITUTION_NAME", "Northbridge University"),
+  institution: get("INSTITUTION_NAME", "La Salle University - Ozamiz"),
 };

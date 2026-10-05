@@ -14,6 +14,7 @@ import { fmtTime, formatBytes, keccakOfBlob, randomSalt, short } from '../../cor
 import { ProgressModalComponent } from './progress-modal.component';
 import { ReviewModalComponent } from './review-modal.component';
 
+// TYPES: TO BE CHANGED according to actual existing categories issued by the SOURCE org
 const TYPES = ['Bachelor of Science', 'Master of Science', 'Doctor of Philosophy', 'Certificate of Completion', 'Research Fellowship', 'Safety Certification'];
 const DRAFT_KEY = 'sourcify.draft.v1';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -133,7 +134,7 @@ export class IssueComponent {
       if (seq === this.previewSeq) { this.preview.set({ documentCID, metadataCID, gas, duplicate, manifest }); this.previewError.set(null); }
     } catch (e: any) {
       if (seq === this.previewSeq) { this.preview.set(null); this.previewError.set(e?.message ?? 'Preview failed'); }
-    }
+    } 
   }
 
   protected openReview(): void {
