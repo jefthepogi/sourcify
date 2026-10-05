@@ -5,9 +5,37 @@ const { ethers, artifacts } = require("hardhat");
 
 const OUT_DIR = path.resolve(__dirname, "../../web/public/deployment");
 
+const DEPLOYMENT_FILE = path.resolve(
+  __dirname,
+  "../../web/public/deployment/deployment.json"
+);
+
 async function main() {
   const [deployer] = await ethers.getSigners();
   const network = await ethers.provider.getNetwork();
+
+  // Reuse existing contract, if any
+  const force = process.env.DEPLOY_FORCE === "1";
+
+  if (!force && fs.existsSync(DEPLOYMENT_FILE)) {
+    const existing = JSON.parse(
+      fs.readFileSync(DEPLOYMENT_FILE, "utf8")
+    );
+
+    if (Number(existing.chainId) === Number(network.chainId)) {
+      const code = await ethers.provider.getCode(existing.address);
+
+      if (code !== "0x") {
+        console.log(
+          `Reusing SourcifyRegistry at ${existing.address} ` +
+          `(chain ${network.chainId})`
+        );
+        return;
+      }
+    }
+  }
+
+  // Create and deploy a new smart contract
   const name = require("../../tools/load-env.cjs").institution;
 
   const registry = await (await ethers.getContractFactory("SourcifyRegistry")).deploy(deployer.address, name, 0);

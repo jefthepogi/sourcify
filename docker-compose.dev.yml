@@ -1,0 +1,24 @@
+services:
+  geth:
+    image: ethereum/client-go:1.17.7
+    container_name: sourcify-geth
+    restart: unless-stopped
+
+    command:
+      - --dev
+      - --datadir=/root/.ethereum
+      - --http
+      - --http.addr=0.0.0.0
+      - --http.port=8545
+      - --http.api=eth,net,web3
+      - --http.corsdomain=http://127.0.0.1:4200,http://localhost:4200
+      - --http.vhosts=127.0.0.1,localhost
+
+    ports:
+      - "127.0.0.1:7545:8545"
+
+    volumes:
+      - sourcify-geth-data:/root/.ethereum
+
+volumes:
+  sourcify-geth-data:

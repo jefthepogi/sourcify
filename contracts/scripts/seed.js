@@ -41,7 +41,16 @@ async function main() {
       salt: ethers.dataSlice(ethers.keccak256(ethers.toUtf8Bytes(`sourcify-demo-salt-${i}`)), 0, 16),
     };
     const metadataCID = await ipfsAdd(ethers.toUtf8Bytes(JSON.stringify(manifest)), "metadata.json");
+
+    const [status] = await registry.verify(docHash);
+
+    if (Number(status) !== 0) {
+      console.log(`already seeded ${d.name} → ${docHash}`);
+      continue;
+    }
+    
     await (await registry.issueCertificate(docHash, metadataCID, 0)).wait();
+    
     if (d.revoke) await (await registry.revokeCertificate(docHash, "Issued in error — superseded by corrected record")).wait();
     console.log(`seeded ${d.name} → ${docHash}`);
   }
