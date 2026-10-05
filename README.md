@@ -66,7 +66,9 @@ docs/        ARCHITECTURE_LOG.md
 ```
 
 ## Wallets and roles
-Dev mode uses the node's unlocked accounts (wallet menu to switch). Account #0 is the owner: it can authorise issuers and revoke any record. MetaMask works when installed (the app adds the local chain).
+Dev mode uses the node's unlocked accounts (wallet menu to switch). Account #0 is the owner: it can authorise issuers and revoke any record. MetaMask works when installed (the app adds the local chain and follows account/network switches).
+
+**Names instead of addresses.** The local accounts map to fictional demo profiles (`web/src/app/core/profiles.ts`). MetaMask cannot share account names with a web page, so use the *Display name* box in the wallet menu to label any account; it is stored in your browser only. Names are cosmetic: permissions come from the on-chain role.
 
 ## Known gaps
 Logo is a placeholder wordmark. MetaMask, camera scanning, Docker/Kubo and the Dev Container were not exercised in the build sandbox. Windows was not tested. The Slither CI step is configured but not yet run.

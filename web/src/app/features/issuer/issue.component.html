@@ -47,6 +47,7 @@
             <input id="file" type="file" class="sr-only" (change)="onFile($event)" /></label>
           @if (err('file')) { <div class="err">{{ err('file') }}</div> }
         </div>
+        @if (file(); as f) { <app-file-preview [file]="f" (remove)="clearFile()" /> }
         <div>
           <div class="label">docHash (Keccak-256)</div>
           <div class="input readonly"><app-icon name="hash" [size]="15" /><input class="mono-v" readonly [value]="docHash() || 'Computed locally when a file is selected'" aria-label="docHash" /></div>

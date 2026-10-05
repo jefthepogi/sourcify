@@ -1,4 +1,5 @@
 <div class="stage">
+<a class="back" routerLink="/issuer/issue"><app-icon name="chevron-down" [size]="14" />Issuer console</a>
 <div class="phone" [style.--bg]="view() === 'result' ? copy().bg : null" [class.tinted]="view() === 'result'">
   <header class="bar"><app-brand /><span class="tag">{{ view() === 'result' ? 'Verification result' : view() === 'manual' ? 'Manual entry' : 'Verify credential' }}</span></header>
 

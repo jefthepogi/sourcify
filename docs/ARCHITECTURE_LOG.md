@@ -104,6 +104,28 @@ Issuer access page; NOT FOUND and EXPIRED result states; "Check a certificate fi
 - **Residual:** the cleaner long-term fix for `contracts/` is migrating to Hardhat 3 (breaking change), which would also retire the overrides.
 - **Status:** Applied.
 
+### A-13 Wallet addresses shown as readable profiles
+- **Source:** feature request.
+- **Finding:** wallets, MetaMask included, do not expose account names to web pages, so a dapp cannot "read" them. Names must come from somewhere the app controls.
+- **Change:** `ProfileService` resolves an address in this order: (1) a display name saved in this browser's address book, (2) the fictional demo directory (`core/profiles.ts`) for the local dev accounts, matched by position, (3) the issuer name the owner recorded on-chain, (4) the shortened address. Shown in the wallet menu and pill, review modal, Credentials, Audit log and Issuer access, which also gets a "quick fill from a demo profile" picker.
+- **Boundaries:** names are display-only. Authority still comes from the on-chain role, so a profile titled "Registrar" grants nothing. The public verifier deliberately ignores local names and shows only the on-chain institution name.
+- **For real deployments:** replace the demo directory with on-chain issuer names (already supported by the contract) and optionally ENS or a DID/SIWE-backed profile service.
+- **Status:** Applied.
+
+### A-14 MetaMask account and network changes are followed
+- **Finding:** the first version read the account once, so switching account in MetaMask left the app showing a stale identity and role.
+- **Change:** `ChainService` listens for `accountsChanged` (reconnects and refreshes the role) and `chainChanged` (reloads, as MetaMask recommends).
+- **Status:** Applied, **not tested against a real MetaMask** (none in the build sandbox).
+
+### A-15 Local preview of the certificate file
+- **Change:** images render in `<img>`, PDFs in `<object>`, text (first 4 KB) in a `<pre>`; other types show a notice. Nothing is uploaded; the blob URL is revoked when the file changes. HTML is shown as source text and never rendered.
+- **Limits:** inline PDF depends on the browser (not available in headless Chromium or most mobile browsers); an "Open" link is provided. The PDF branch was checked only for the presence of the viewer element.
+- **Status:** Applied.
+
+### A-16 Quick access to the verifier
+- **Change:** "Open verifier" in the sidebar, a "Verifier" button in the top bar (stays visible when the sidebar collapses), and an "Issuer console" link back on desktop.
+- **Status:** Applied.
+
 ## 3. Traceability (to be completed)
 
 | Capability | Where | SRS / SPMP ID |
@@ -126,9 +148,10 @@ Issuer access page; NOT FOUND and EXPIRED result states; "Check a certificate fi
 | Item | Result |
 |---|---|
 | Contract unit tests (Mocha/Chai, 16) | 16 passed: roles, duplicates, validation, expiry, revocation, ownership transfer, gas < 200k |
-| Web unit tests (Vitest, 5) | 5 passed |
+| Web unit tests (Vitest, 7) | 7 passed |
 | Production build | Succeeds; initial bundle 266 kB raw / 72 kB transferred |
 | Scripted browser run (Chromium, Playwright) | Issue → pin → sign → mint → QR; mobile VALID with "stored document matches"; unknown hash → NOT FOUND; revoke → REVOKED; zero console errors |
+| Scripted UI run for A-13 to A-16 (`tools/e2e/ui_features.py`) | Profiles resolve and persist across reload; image, text, PDF-element and fallback previews; remove clears hash; sidebar, top-bar and back links navigate; no failed requests once `config.json` exists |
 | IPFS retrieval benchmark (mock, loopback) | mean 2.8 ms over 20 trials (not representative of a real Kubo node) |
 | Clean `git clone` → `npm run setup` → `npm test` → build → `npm run smoke` (Node 22.22.2, npm 10.9.7, blocked compiler download) | All pass. Smoke fingerprint `c003f018a3adad3b` identical across two runs, a second checkout, and custom ports via `.env` |
 | `npm audit` after A-12 | 0 critical, 0 high in both packages |

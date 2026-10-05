@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { IpfsService } from './ipfs.service';
 import { AuditEvent, CredentialManifest, LedgerEntry } from './models';
 import { RegistryService } from './registry.service';
@@ -12,6 +12,15 @@ export class LedgerService {
 
   readonly entries = signal<LedgerEntry[]>([]);
   readonly audit = signal<AuditEvent[]>([]);
+  /** Current issuer names (lower-cased address → name), replayed from authorise/de-authorise events. */
+  readonly issuerNames = computed(() => {
+    const m = new Map<string, string>();
+    for (const a of [...this.audit()].reverse()) {
+      if (a.kind === 'issuer-authorized') m.set(a.subject.toLowerCase(), a.detail);
+      else if (a.kind === 'issuer-deauthorized') m.delete(a.subject.toLowerCase());
+    }
+    return m;
+  });
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 

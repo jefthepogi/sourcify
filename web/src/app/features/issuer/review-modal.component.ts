@@ -4,6 +4,7 @@ import { IconComponent } from '../../core/icon.component';
 import { PreparedIssuance } from '../../core/issuance.service';
 import { cfg, deployment } from '../../core/runtime';
 import { inject } from '@angular/core';
+import { ProfileService } from '../../core/profile.service';
 import { short } from '../../core/util';
 
 @Component({
@@ -22,7 +23,7 @@ import { short } from '../../core/util';
         <h4>Document &amp; storage</h4>
         <dl><dt>docHash</dt><dd class="m">{{ short(data().docHash, 10, 8) }}</dd><dt>Document CID</dt><dd class="m">{{ short(data().documentCID, 12, 6) }}</dd><dt>Metadata CID</dt><dd class="m">{{ short(data().metadataCID, 12, 6) }}</dd><dt>Schema</dt><dd class="m">{{ data().manifest.schema }}</dd></dl>
         <h4>Signing context</h4>
-        <dl><dt>Wallet</dt><dd class="m">{{ short(chain.account(), 6, 4) }}</dd><dt>Contract</dt><dd class="m">{{ short(contract, 6, 4) }} · {{ cfg.chainName }} {{ cfg.chainId }}</dd><dt>Estimated gas</dt><dd class="m">{{ gas() == null ? '—' : gas()!.toLocaleString() + ' gas' }}</dd></dl>
+        <dl><dt>Wallet</dt><dd class="m">{{ profiles.name(chain.account()) }} · {{ short(chain.account(), 6, 4) }}</dd><dt>Contract</dt><dd class="m">{{ short(contract, 6, 4) }} · {{ cfg.chainName }} {{ cfg.chainId }}</dd><dt>Estimated gas</dt><dd class="m">{{ gas() == null ? '—' : gas()!.toLocaleString() + ' gas' }}</dd></dl>
         <label class="ack"><input type="checkbox" [checked]="ack()" (change)="ack.set($any($event.target).checked)" /><span>I reviewed the recipient, document hash, IPFS CID, contract, and understand this record cannot be edited after signing.</span></label>
       </div>
       <div class="f"><button class="btn" style="width:150px" (click)="cancel.emit()">Return to Edit</button>
@@ -48,6 +49,7 @@ export class ReviewModalComponent {
   readonly cancel = output<void>();
   readonly confirm = output<void>();
   protected readonly chain = inject(ChainService);
+  protected readonly profiles = inject(ProfileService);
   protected readonly ack = signal(false);
   protected readonly cfg = cfg;
   protected readonly contract = deployment?.address ?? '';

@@ -7,7 +7,7 @@
 .wallet { display: flex; align-items: center; gap: 9px; height: 38px; padding: 0 12px; background: var(--ink); color: #fff; border: 0; border-radius: 8px; }
 .wsym { width: 22px; height: 22px; border-radius: 6px; background: var(--warn-soft); color: var(--warn-ink); display: grid; place-items: center; }
 .wid { display: flex; flex-direction: column; text-align: left; line-height: 1.2; } .wid b { font-size: 10px; } .wid small { font-size: 9px; color: #c7d1df; }
-.menu { position: absolute; right: 0; top: 44px; width: 240px; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 32px rgba(21, 34, 59, .16); padding: 6px; z-index: 30; }
+.menu { position: absolute; right: 0; top: 44px; width: 280px; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 32px rgba(21, 34, 59, .16); padding: 6px; z-index: 30; }
 .menu p { margin: 6px 8px; font-size: 10px; color: var(--ink-4); text-transform: uppercase; }
 .menu button { display: flex; justify-content: space-between; width: 100%; padding: 9px 8px; border: 0; background: none; border-radius: 6px; font-size: 12px; text-align: left; }
 .menu button:hover, .menu button.sel { background: var(--primary-soft); } .menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
@@ -25,3 +25,13 @@ nav { display: flex; flex-direction: column; gap: 6px; }
 .svc { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink-3); } .good { color: var(--ok); } .badc { color: var(--bad); }
 main { flex: 1; min-width: 0; padding: 20px 24px 28px; }
 @media (max-width: 900px) { aside { display: none; } .wid, .pill { display: none; } }
+.vbtn { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 12px; border-radius: 8px; background: var(--primary); color: #fff; text-decoration: none; font-size: 12px; font-weight: 500; }
+.vbtn:hover { background: #1a49b3; }
+.who { display: flex; flex-direction: column; } .who b { font-size: 12px; font-weight: 500; } .who small { font-size: 10px; color: var(--ink-3); }
+.menu button small.mono { font-size: 9px; color: var(--ink-4); align-self: center; }
+.nav.quick { border: 1px dashed var(--line-strong); color: var(--primary-ink); } .nav.quick:hover { background: var(--primary-soft); border-style: solid; }
+.nick { padding: 6px 8px 8px; display: flex; flex-direction: column; gap: 6px; } .nick label { font-size: 10px; color: var(--ink-4); text-transform: uppercase; } .nick small { font-size: 10px; color: var(--ink-4); }
+.nrow { display: flex; gap: 6px; } .nrow input { flex: 1; min-width: 0; height: 32px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 0 8px; font-size: 12px; }
+.menu .nrow button { width: auto; padding: 0 12px; background: var(--primary); color: #fff; border-radius: 6px; font-weight: 500; justify-content: center; }
+@media (max-width: 900px) { .vbtn { height: 34px; } }
+.menu .list { max-height: 340px; overflow-y: auto; }

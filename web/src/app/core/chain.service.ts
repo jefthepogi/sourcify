@@ -15,6 +15,7 @@ export class ChainService {
   readonly devAccounts = signal<string[]>([]);
   readonly role = signal<Role>('none');
   readonly roleLabel = computed(() => ({ owner: 'Issuer admin', issuer: 'Issuer', none: 'Not authorized' })[this.role()]);
+  private listening = false;
   readonly hasInjected = typeof window !== 'undefined' && !!(window as any).ethereum;
 
   async restore(): Promise<void> {
@@ -29,6 +30,7 @@ export class ChainService {
     if (mode === 'injected') {
       const eth = (window as any).ethereum;
       await this.ensureChain(eth);
+      this.listen(eth);
       const bp = new BrowserProvider(eth, 'any');
       await bp.send('eth_requestAccounts', []);
       const signer = await bp.getSigner();
@@ -54,6 +56,18 @@ export class ChainService {
       const [owner, isIssuer] = await Promise.all([c['owner'](), c['hasRole'](await c['ISSUER_ROLE'](), account)]);
       this.role.set(owner.toLowerCase() === account.toLowerCase() ? 'owner' : isIssuer ? 'issuer' : 'none');
     } catch { this.role.set('none'); }
+  }
+
+  /** MetaMask lets users switch account or network at any time; mirror that instead of showing a stale identity. */
+  private listen(eth: any): void {
+    if (this.listening || !eth?.on) return;
+    this.listening = true;
+    eth.on('accountsChanged', (accounts: string[]) => {
+      if (this.mode() !== 'injected') return;
+      if (accounts?.length) void this.connect('injected').catch(() => undefined);
+      else { this.signer.set(null); this.account.set(null); this.role.set('none'); }
+    });
+    eth.on('chainChanged', () => location.reload()); // MetaMask's recommended handling
   }
 
   private async ensureChain(eth: any): Promise<void> {

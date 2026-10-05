@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ChainService } from '../../core/chain.service';
 import { HealthService } from '../../core/health.service';
+import { FilePreviewComponent } from '../../core/file-preview.component';
 import { IconComponent } from '../../core/icon.component';
 import { IpfsService } from '../../core/ipfs.service';
 import { IssuanceService, PreparedIssuance } from '../../core/issuance.service';
@@ -22,7 +23,7 @@ const DID_RE = /^did:[a-z0-9]+:[A-Za-z0-9._:%-]+$/;
 @Component({
   selector: 'app-issue',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, IconComponent, ReviewModalComponent, ProgressModalComponent],
+  imports: [FormsModule, RouterLink, IconComponent, FilePreviewComponent, ReviewModalComponent, ProgressModalComponent],
   templateUrl: './issue.component.html',
   styleUrl: './issue.component.css',
 })
@@ -105,6 +106,7 @@ export class IssueComponent {
     this.file.set(f);
     this.docHash.set(f ? await keccakOfBlob(f) : '');
   }
+  protected clearFile(): void { this.file.set(null); this.docHash.set(''); }
   protected input(sig: { set(v: string): void }, ev: Event): void { sig.set((ev.target as HTMLInputElement).value); }
 
   protected buildManifest(documentCID: string): CredentialManifest {

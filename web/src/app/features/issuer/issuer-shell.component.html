@@ -1,20 +1,28 @@
 <header class="top">
   <app-brand />
   <div class="status">
+    <a class="vbtn" routerLink="/verify" title="Open the public verifier"><app-icon name="scan-line" [size]="15" />Verifier</a>
     <span class="pill"><span class="dot" [class.ok]="health.chainUp()"></span>{{ cfg.chainName }} · Chain {{ cfg.chainId }}</span>
     <div class="wallet-wrap">
       <button class="wallet" (click)="menuOpen.set(!menuOpen())" aria-haspopup="menu" [attr.aria-expanded]="menuOpen()">
         <span class="wsym"><app-icon name="wallet-cards" [size]="13" /></span>
-        <span class="wid"><b class="mono">{{ short(chain.account(), 6, 4) }}</b><small>{{ chain.roleLabel() }}</small></span>
+        <span class="wid"><b [class.mono]="me().source === 'none'">{{ me().name }}</b><small>{{ me().username ? '@' + me().username + ' · ' : '' }}{{ chain.roleLabel() }}</small></span>
         <app-icon name="chevron-down" [size]="13" />
       </button>
       @if (menuOpen()) {
         <div class="menu" role="menu">
           <p>Local development accounts</p>
+          <div class="list">
           @for (a of chain.devAccounts(); track a; let i = $index) {
-            <button role="menuitem" (click)="pick('dev', i)" [class.sel]="chain.mode() === 'dev' && chain.account() === a"><span class="mono">{{ short(a, 8, 6) }}</span><small>#{{ i }}</small></button>
+            <button role="menuitem" (click)="pick('dev', i)" [title]="a" [class.sel]="chain.mode() === 'dev' && chain.account() === a"><span class="who"><b>{{ profiles.name(a) }}</b><small>{{ profiles.resolve(a).title }}</small></span><small class="mono">#{{ i }}</small></button>
           }
+          </div>
           @if (chain.hasInjected) { <hr><button role="menuitem" (click)="pick('injected')">Use MetaMask</button> }
+          @if (chain.account()) {
+            <hr><div class="nick"><label for="nick">Display name for {{ short(chain.account(), 6, 4) }}</label>
+              <div class="nrow"><input id="nick" maxlength="40" [value]="nick()" (input)="nick.set($any($event.target).value)" (keydown.enter)="saveNick()" placeholder="e.g. Registrar office" /><button type="button" (click)="saveNick()">Save</button></div>
+              <small>Stored in this browser only. Leave empty and save to clear.</small></div>
+          }
         </div>
       }
     </div>
@@ -29,6 +37,8 @@
       @for (n of nav; track n.path) {
         <a [routerLink]="n.path" routerLinkActive="active" class="nav"><app-icon [name]="n.icon" [size]="17" /><span>{{ n.label }}</span><i></i></a>
       }
+      <p class="section" style="margin-top:14px">Quick access</p>
+      <a routerLink="/verify" class="nav quick"><app-icon name="scan-line" [size]="17" /><span>Open verifier</span><app-icon name="link" [size]="13" /></a>
     </nav>
     <div class="env">
       <div class="env-h"><b>Local services</b><span class="badge upper" [class.ok]="health.allUp()" [class.bad]="health.blocking()"><span class="dot"></span>{{ stateLabel() }}</span></div>

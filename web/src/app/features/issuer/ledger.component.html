@@ -8,7 +8,7 @@
     @case ('credentials') {
       <table class="table"><thead><tr><th>Credential</th><th>Recipient</th><th>docHash</th><th>Issued</th><th>Status</th><th></th></tr></thead><tbody>
         @for (e of rows(); track e.docHash) {
-          <tr><td>{{ e.manifest?.credential?.program ?? '—' }}<div class="sub">{{ e.issuerLabel }}</div></td><td>{{ e.manifest?.recipient?.name ?? 'Metadata unavailable' }}</td>
+          <tr><td>{{ e.manifest?.credential?.program ?? '—' }}<div class="sub">{{ e.issuerLabel }} · by {{ profiles.handle(e.issuer) }}</div></td><td>{{ e.manifest?.recipient?.name ?? 'Metadata unavailable' }}</td>
             <td class="mono">{{ short(e.docHash, 8, 6) }}</td><td>{{ fmtDate(e.issuedAt) }}</td>
             <td><span class="badge" [class.ok]="e.status === 'valid'" [class.bad]="e.status === 'revoked'" [class.warn]="e.status === 'expired'">{{ e.status }}</span></td>
             <td class="acts">
@@ -38,7 +38,7 @@
     @case ('audit') {
       <table class="table"><thead><tr><th>Event</th><th>Subject</th><th>Detail</th><th>Block</th><th>Time</th></tr></thead><tbody>
         @for (a of ledger.audit(); track a.txHash + a.logIndex) { <tr><td><span class="badge" [class.ok]="a.kind === 'issued' || a.kind === 'issuer-authorized'" [class.bad]="a.kind === 'revoked' || a.kind === 'issuer-deauthorized'">{{ kindLabel(a.kind) }}</span></td>
-          <td class="mono">{{ short(a.subject, 8, 6) }}<div class="sub">{{ a.actor ? 'by ' + short(a.actor, 6, 4) : '' }}</div></td><td class="sub" style="max-width:280px;overflow:hidden;text-overflow:ellipsis">{{ a.detail }}</td>
+          <td class="mono">{{ a.kind.startsWith('issuer') ? profiles.name(a.subject) : short(a.subject, 8, 6) }}<div class="sub">{{ a.actor ? 'by ' + profiles.handle(a.actor) : '' }}</div></td><td class="sub" style="max-width:280px;overflow:hidden;text-overflow:ellipsis">{{ a.detail }}</td>
           <td class="mono">{{ a.blockNumber }}</td><td>{{ fmtDate(a.timestamp) }}</td></tr> }
         @empty { <tr><td colspan="5" class="empty">No events recorded.</td></tr> }
       </tbody></table>

@@ -4,6 +4,7 @@ import { HealthService } from '../../core/health.service';
 import { IconComponent } from '../../core/icon.component';
 import { LedgerService } from '../../core/ledger.service';
 import { LedgerEntry } from '../../core/models';
+import { ProfileService } from '../../core/profile.service';
 import { RegistryService } from '../../core/registry.service';
 import { fmtDate, short } from '../../core/util';
 
@@ -30,6 +31,7 @@ export class LedgerComponent {
   protected readonly ledger = inject(LedgerService);
   protected readonly registry = inject(RegistryService);
   protected readonly chain = inject(ChainService);
+  protected readonly profiles = inject(ProfileService);
   private readonly health = inject(HealthService);
   protected readonly short = short;
   protected readonly fmtDate = fmtDate;

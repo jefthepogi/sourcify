@@ -33,3 +33,21 @@ export const fmtDate = (unixSeconds: number | bigint): string =>
   new Date(Number(unixSeconds) * 1000).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 export const fmtTime = (d: Date): string => d.toLocaleTimeString('en-GB');
 export const randomSalt = (): string => '0x' + [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
+
+export type PreviewKind = 'image' | 'pdf' | 'text' | 'other';
+const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|avif|bmp)$/i;
+const TEXT_EXT = /\.(txt|md|json|csv|log|xml|html?)$/i;
+
+/** What the issuer form can safely show for a chosen file. HTML is shown as source text, never rendered. */
+export function previewKind(name: string, type: string): PreviewKind {
+  if (type.startsWith('image/') || IMAGE_EXT.test(name)) return 'image';
+  if (type === 'application/pdf' || /\.pdf$/i.test(name)) return 'pdf';
+  if (type.startsWith('text/') || type === 'application/json' || TEXT_EXT.test(name)) return 'text';
+  return 'other';
+}
+
+/** "Dr. Elena Marquez" → "EM". Falls back to "??". */
+export function initialsOf(name: string | null | undefined): string {
+  const words = (name ?? '').split(/\s+/).filter((w) => /^[\p{L}]/u.test(w) && !/^(dr|prof)\.?$/i.test(w));
+  return words.length ? words.slice(0, 2).map((w) => w[0].toUpperCase()).join('') : '??';
+}
