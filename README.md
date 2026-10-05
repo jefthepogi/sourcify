@@ -133,7 +133,7 @@ conda env create -f environment.yml
 Then activate the environment named in the file. If the file says `name: sourcify`, use:
 
 ```bash
-conda activate sourcify
+conda activate sourcify-cl
 ```
 
 If your repository intentionally uses another environment name such as `sourcify-cl`, use that exact name instead.
