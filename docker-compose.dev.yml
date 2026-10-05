@@ -1,6 +1,6 @@
 services:
   geth:
-    image: ethereum/client-go:1.17.7
+    image: ethereum/client-go:v1.17.5
     container_name: sourcify-geth
     restart: unless-stopped
 
@@ -12,13 +12,30 @@ services:
       - --http.port=8545
       - --http.api=eth,net,web3
       - --http.corsdomain=http://127.0.0.1:4200,http://localhost:4200
-      - --http.vhosts=127.0.0.1,localhost
-
+      - --http.vhosts=*
     ports:
-      - "127.0.0.1:7545:8545"
+      - "7545:8545"
 
     volumes:
       - sourcify-geth-data:/root/.ethereum
 
+  ipfs:
+      image: ipfs/kubo:v0.43.1 # pinned
+      container_name: sourcify-ipfs
+      restart: unless-stopped
+      
+      # 1. Pull the variable from your root .env file and expose it to the container
+      environment:
+        - FRONTEND_URL=${FRONTEND_URL}
+        
+      ports:
+        - "5001:5001"
+        - "8080:8080"
+        - "4001:4001"
+        
+      volumes:
+      - sourcify-ipfs-data:/data/ipfs
+      - ./docker/ipfs-init/001-cors.sh:/container-init.d/001-cors.sh:ro
 volumes:
   sourcify-geth-data:
+  sourcify-ipfs-data:

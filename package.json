@@ -18,12 +18,12 @@
     "reset": "node tools/clean.mjs && node tools/dev.mjs",
     "bench:ipfs": "node tools/bench-ipfs.mjs",
     
-    "docker:up": "wsl docker compose up -d",
-    "docker:stop": "wsl docker compose stop",
-    "docker:clean": "wsl docker compose down -v",
-    "dev:docker": "npm run docker:up && node tools/dev.mjs",
-    "smoke:docker": "npm run docker:up && node tools/smoke.mjs",
-    "test:docker": "npm run docker:up && cd contracts && npx hardhat test --network localhost"
+    "chain:persistent": "wsl docker compose -f docker-compose.dev.yml up -d",
+    "deploy:persistent": "npm --prefix contracts run deploy",
+    "seed:persistent": "npm --prefix contracts run seed",
+    "dev:persistent": "node tools/dev-persistent.mjs",
+    "stop:persistent": "wsl docker compose -f docker-compose.dev.yml stop geth",
+    "reset:persistent": "wsl docker compose -f docker-compose.dev.yml down -v"
   },
   "engines": {
     "node": ">=24 <25",
