@@ -14,7 +14,7 @@ const webDir = join(ROOT, 'web');
 const require = createRequire(import.meta.url);
 const e = require('./load-env.cjs');
 
-const RPC = `http://127.0.0.1:${e.ports.rpc}`;
+const RPC = `${e.rpcUrl("persistent")}`;
 const IPFS = `http://127.0.0.1:${e.ports.ipfsApi}`;
 
 const procs = [];
@@ -64,6 +64,7 @@ const npmCli = getNpmCli();
 
 const env = {
   ...process.env,
+  SOURCIFY_MODE: 'persistent',
   PATH:
     `${dirname(process.execPath)};` +
     `${process.env.PATH ?? ''}`
@@ -206,7 +207,11 @@ await new Promise((resolvePromise, rejectPromise) => {
   const child = run(
     'config',
     process.execPath,
-    [join(ROOT, 'tools', 'write-config.mjs')],
+    [
+      join(ROOT, 'tools', 'write-config.mjs'),
+      '--mode',
+      'persistent'
+    ],
     { cwd: ROOT }
   );
 
@@ -263,7 +268,7 @@ if (process.platform === 'win32') {
 }
 
 /* 3. Wait for Geth */
-console.log(`\n⛓️ Waiting for Geth at ${RPC}...`);
+console.log(`\n Waiting for Geth at ${RPC}...`);
 
 await wait(
   'Geth RPC',
@@ -303,7 +308,7 @@ console.log('\n📜 Deploying SourcifyRegistry...');
 await npmRun(
   'deploy',
   contractsDir,
-  'deploy',
+  'deploy:persistent',
   true
 );
 
@@ -314,7 +319,7 @@ if (process.env.SEED !== '0') {
   await npmRun(
     'seed',
     contractsDir,
-    'seed',
+    'seed:persistent',
     true
   );
 }

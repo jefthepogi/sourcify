@@ -12,14 +12,30 @@ if (fs.existsSync(file)) {
 }
 const get = (k, d) => process.env[k] ?? d;
 
+const ports = {
+  development_rpc: Number(get("SOURCIFY_DEVELOPMENT_RPC_PORT", "8545")),
+  persistent_rpc: Number(get("SOURCIFY_PERSISTENT_RPC_PORT", "7545")),
+  ipfsApi: Number(get("IPFS_API_PORT", "5001")),
+  gateway: Number(get("IPFS_GATEWAY_PORT", "8080")),
+  web: 4200,
+};
+
+const rpcUrl = (mode) => {
+  if (mode === "development") {
+    return `http://127.0.0.1:${ports.development_rpc}`;
+  }
+
+  if (mode === "persistent") {
+    return `http://127.0.0.1:${ports.persistent_rpc}`;
+  }
+
+  throw new Error(`Unknown Sourcify runtime mode: ${mode}`);
+};
+
 module.exports = {
   root,
   chainId: Number(get("SOURCIFY_CHAIN_ID", "1337")),
-  ports: {
-    rpc: Number(get("SOURCIFY_RPC_PORT", "7545")),
-    ipfsApi: Number(get("IPFS_API_PORT", "5001")),
-    gateway: Number(get("IPFS_GATEWAY_PORT", "8080")),
-    web: 4200,
-  },
+  ports,
+  rpcUrl,
   institution: get("INSTITUTION_NAME", "La Salle University - Ozamiz"),
 };

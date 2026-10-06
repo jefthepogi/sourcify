@@ -38,7 +38,16 @@ module.exports = {
       initialBaseFeePerGas: 0, // zero-cost local network
       allowBlocksWithSameTimestamp: true,
     },
-    localhost: { url: `http://127.0.0.1:${env.ports.rpc}`, chainId: env.chainId },
+    
+    localhost: {
+      url: env.rpcUrl("development"),
+      chainId: env.chainId,
+    },
+    
+    persistent: {
+      url: env.rpcUrl("persistent"),
+      chainId: env.chainId,
+    },
   },
   paths: { sources: "./contracts", tests: "./test", cache: "./cache", artifacts: "./artifacts" },
   mocha: { timeout: 60000 },

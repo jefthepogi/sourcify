@@ -13,7 +13,7 @@ const webDir = join(ROOT, 'web');
 const require = createRequire(import.meta.url);
 const e = require('./load-env.cjs');
 
-const RPC = `http://127.0.0.1:${e.ports.rpc}`;
+const RPC = `${e.rpcUrl("development")}`;
 const IPFS = `http://127.0.0.1:${e.ports.ipfsApi}`;
 
 const procs = [];
@@ -61,14 +61,11 @@ const npmCli = getNpmCli();
 
 const env = {
   ...process.env,
-
-  // Make the Node runtime that started this script win
-  // for all child processes.
+  SOURCIFY_MODE: 'development',
   PATH:
     `${dirname(process.execPath)};` +
     `${process.env.PATH ?? ''}`
 };
-
 function run(name, command, args, options = {}) {
   const child = spawn(command, args, {
     cwd: ROOT,
@@ -180,7 +177,7 @@ await new Promise((resolvePromise, rejectPromise) => {
   const child = run(
     'config',
     process.execPath,
-    [join(ROOT, 'tools', 'write-config.mjs')],
+    [join(ROOT, 'tools', 'write-config.mjs'), '--mode', 'development'],
     { cwd: ROOT }
   );
 

@@ -1,475 +1,593 @@
 #!/usr/bin/env node
-// Headless end-to-end check of the environment:
-// chain → deploy → IPFS → seed → read everything back.
-//
-// Prints a fingerprint of the deterministic outputs;
-// two runs on any machine must print the same value.
 
-import { spawn, execFile } from 'node:child_process';
+// Headless end-to-end Sourcify environment check.
+//
+// Usage:
+//   node tools/smoke.mjs
+//   node tools/smoke.mjs --mode development
+//   node tools/smoke.mjs --mode persistent
+//
+// Development mode:
+//   starts Hardhat + IPFS mock, deploys, seeds, verifies, then cleans up.
+//
+// Persistent mode:
+//   assumes Geth + Kubo are already running, deploys/reuses, seeds,
+//   verifies, and leaves the persistent infrastructure untouched.
+
+import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 const require = createRequire(import.meta.url);
-
-const e = require('./load-env.cjs');
+const envConfig = require('./load-env.cjs');
 
 const {
   JsonRpcProvider,
   Contract,
-} = require(join(e.root, 'contracts/node_modules/ethers'));
+  keccak256,
+  toUtf8Bytes,
+} = require(
+  join(
+    envConfig.root,
+    'contracts/node_modules/ethers'
+  )
+);
 
-const RPC = `http://127.0.0.1:${e.ports.rpc}`;
-const IPFS = `http://127.0.0.1:${e.ports.ipfsApi}`;
+const ROOT = envConfig.root;
+const contractsDir = join(ROOT, 'contracts');
 
-const EXPECTED_ADDRESS =
-  '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+function getMode() {
+  const args = process.argv.slice(2);
+  const index = args.indexOf('--mode');
 
-const kids = [];
+  if (index === -1) {
+    return 'development';
+  }
 
-const quiet = process.env.SMOKE_VERBOSE
-  ? 'inherit'
-  : 'ignore';
+  const mode = args[index + 1];
 
-/*
- * Windows needs shell:true when launching npm/npm.cmd.
- * We therefore clean up the complete process tree with
- * taskkill instead of relying only on child.kill().
- */
-const spawnK = (cmd, args, opts = {}) => {
-  const p = spawn(cmd, args, {
-    stdio: ['ignore', quiet, quiet],
+  if (!mode) {
+    throw new Error(
+      'Missing value for --mode. Use "development" or "persistent".'
+    );
+  }
 
-    // npm on Windows needs a shell.
-    shell: process.platform === 'win32',
+  if (
+    mode !== 'development' &&
+    mode !== 'persistent'
+  ) {
+    throw new Error(
+      `Invalid mode "${mode}". Use "development" or "persistent".`
+    );
+  }
 
-    ...opts,
-  });
+  return mode;
+}
 
-  kids.push(p);
+const mode = getMode();
 
-  return p;
-};
+const RPC =
+  mode === 'development'
+    ? envConfig.rpcUrl('development')
+    : envConfig.rpcUrl('persistent');
 
-const step = async (label, fn) => {
-  const result = await fn();
-  console.log(`  ok    ${label}`);
-  return result;
-};
+const IPFS =
+  `http://127.0.0.1:${envConfig.ports.ipfsApi}`;
 
-const once = (cmd, args, opts = {}) =>
-  new Promise((resolve, reject) => {
-    const p = spawnK(cmd, args, opts);
+const GATEWAY =
+  `http://127.0.0.1:${envConfig.ports.gateway}/ipfs`;
 
-    p.once('error', (err) => {
-      reject(
-        new Error(
-          `${cmd} ${args.join(' ')} failed to start: ${err.message}`
-        )
-      );
-    });
+const deploymentFile =
+  mode === 'development'
+    ? 'development.json'
+    : 'persistent.json';
 
-    p.once('exit', (code, signal) => {
-      if (code === 0) {
-        resolve();
-        return;
+const deploymentPath = join(
+  ROOT,
+  'web/public/deployment',
+  deploymentFile
+);
+
+const children = [];
+
+function getNpmCli() {
+  if (process.env.npm_execpath) {
+    return process.env.npm_execpath;
+  }
+
+  const candidates = [
+    join(
+      dirname(process.execPath),
+      'node_modules',
+      'npm',
+      'bin',
+      'npm-cli.js'
+    ),
+    join(
+      dirname(process.execPath),
+      '..',
+      'lib',
+      'node_modules',
+      'npm',
+      'bin',
+      'npm-cli.js'
+    ),
+  ];
+
+  const result = candidates.find(
+    (file) => {
+      try {
+        return require('node:fs').existsSync(file);
+      } catch {
+        return false;
       }
+    }
+  );
 
-      reject(
-        new Error(
-          `${cmd} ${args.join(' ')} exited with code ${code}` +
-            (signal ? ` (${signal})` : '')
-        )
-      );
-    });
+  if (!result) {
+    throw new Error(
+      `Could not locate npm CLI for Node runtime:\n${process.execPath}`
+    );
+  }
+
+  return result;
+}
+
+const npmCli = getNpmCli();
+
+const childEnv = {
+  ...process.env,
+  SOURCIFY_MODE: mode,
+  PATH:
+    `${dirname(process.execPath)};` +
+    `${process.env.PATH ?? ''}`,
+};
+
+function spawnProcess(
+  name,
+  command,
+  args,
+  options = {}
+) {
+  const child = spawn(
+    command,
+    args,
+    {
+      cwd: ROOT,
+      env: childEnv,
+      shell: false,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      ...options,
+    }
+  );
+
+  child.stdout.on('data', (data) => {
+    for (const line of data.toString().split(/\r?\n/)) {
+      if (line.trim()) {
+        console.log(`[${name}] ${line}`);
+      }
+    }
   });
 
-const wait = async (label, probe) => {
+  child.stderr.on('data', (data) => {
+    for (const line of data.toString().split(/\r?\n/)) {
+      if (line.trim()) {
+        console.error(`[${name}] ${line}`);
+      }
+    }
+  });
+
+  child.on('error', (error) => {
+    console.error(
+      `[${name}] ${error.message}`
+    );
+  });
+
+  children.push(child);
+
+  return child;
+}
+
+function npmRun(
+  name,
+  cwd,
+  script,
+  waitForExit = false
+) {
+  const args = [
+    npmCli,
+    'run',
+    script,
+  ];
+
+  if (!waitForExit) {
+    return spawnProcess(
+      name,
+      process.execPath,
+      args,
+      { cwd }
+    );
+  }
+
+  return new Promise(
+    (resolvePromise, rejectPromise) => {
+      const child = spawnProcess(
+        name,
+        process.execPath,
+        args,
+        { cwd }
+      );
+
+      child.once(
+        'exit',
+        (code) => {
+          if (code === 0) {
+            resolvePromise();
+          } else {
+            rejectPromise(
+              new Error(
+                `${name} exited with code ${code}`
+              )
+            );
+          }
+        }
+      );
+    }
+  );
+}
+
+async function waitFor(label, probe) {
   for (let i = 0; i < 80; i++) {
     try {
       if (await probe()) {
         return;
       }
     } catch {
-      // Service is not ready yet; retry.
+      // Continue waiting.
     }
 
     await sleep(500);
   }
 
-  throw new Error(`${label} did not start`);
-};
+  throw new Error(
+    `${label} did not become ready`
+  );
+}
 
-/*
- * Kill a process and its entire child tree.
- *
- * This is important on Windows because:
- *
- * smoke.mjs
- *   └── npm
- *       └── hardhat/node
- *
- * Killing only npm can leave Hardhat running in the background.
- */
-const killProcessTree = async (child) => {
-  if (!child || child.exitCode !== null) {
-    return;
-  }
-
-  if (process.platform === 'win32') {
-    await new Promise((resolve) => {
-      execFile(
-        'taskkill',
-        ['/pid', String(child.pid), '/t', '/f'],
-        () => resolve()
-      );
-    });
-
-    return;
-  }
-
-  try {
-    child.kill('SIGTERM');
-  } catch {
-    // Process may already be gone.
-  }
-};
-
-const stop = async () => {
-  const running = kids.filter(
-    (child) =>
-      child &&
-      child.exitCode === null
+async function rpcReady() {
+  const response = await fetch(
+    RPC,
+    {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'eth_chainId',
+        params: [],
+      }),
+    }
   );
 
-  if (running.length === 0) {
-    return;
-  }
+  return response.ok;
+}
 
-  /*
-   * Kill all process trees.
-   */
-  await Promise.all(
-    running.map((child) =>
-      killProcessTree(child)
+async function ipfsReady() {
+  const response = await fetch(
+    `${IPFS}/api/v0/version`,
+    {
+      method: 'POST',
+    }
+  );
+
+  return response.ok;
+}
+
+async function stopDevelopmentChildren() {
+  for (const child of children) {
+    if (!child || child.exitCode !== null) {
+      continue;
+    }
+
+    try {
+      child.kill();
+    } catch {
+      // Already terminated.
+    }
+  }
+}
+
+function expectedDemo() {
+  return [
+    {
+      name: 'Amara Okafor',
+      program:
+        'MSc Data Science · Distinction',
+      date: '2026-09-18',
+      expectedStatus: 1,
+      seed: 0,
+    },
+    {
+      name: 'Luis Moreno',
+      program:
+        'Research Fellowship · Applied Cryptography',
+      date: '2026-09-18',
+      expectedStatus: 1,
+      seed: 1,
+    },
+    {
+      name: 'Marcus Reed',
+      program:
+        'Laboratory Safety Certification',
+      date: '2026-09-17',
+      expectedStatus: 2,
+      seed: 2,
+    },
+  ];
+}
+
+function docHashFor(entry) {
+  return keccak256(
+    toUtf8Bytes(
+      `DEMO CERTIFICATE\n` +
+      `${entry.name}\n` +
+      `${entry.program}\n` +
+      `${entry.date}\n` +
+      `seed-${entry.seed}`
     )
   );
+}
 
-  /*
-   * Give the OS a moment to reap the processes.
-   */
-  await Promise.all(
-    running.map(
-      (child) =>
-        new Promise((resolve) => {
-          if (child.exitCode !== null) {
-            resolve();
-            return;
-          }
-
-          const timer = setTimeout(
-            resolve,
-            1500
-          );
-
-          child.once('exit', () => {
-            clearTimeout(timer);
-            resolve();
-          });
-
-          child.once('error', () => {
-            clearTimeout(timer);
-            resolve();
-          });
-        })
-    )
-  );
-};
-
-let shuttingDown = false;
-
-const shutdown = async (exitCode) => {
-  if (shuttingDown) {
-    return;
-  }
-
-  shuttingDown = true;
-
-  await stop();
-
-  process.exit(exitCode);
-};
-
-process.on('SIGINT', () => {
-  void shutdown(130);
-});
-
-process.on('SIGTERM', () => {
-  void shutdown(143);
-});
-
-let code = 0;
-
-try {
-  console.log('Sourcify smoke test');
-
-  /*
-   * Generate/update configuration.
-   */
-  await once(
-    'node',
-    ['tools/write-config.mjs']
-  );
-
-  /*
-   * Start Hardhat using the SAME command declared
-   * in package.json:
-   *
-   * "chain": "npm --prefix contracts run node"
-   */
-  spawnK(
-    'npm',
-    [
-      '--prefix',
-      'contracts',
-      'run',
-      'node',
-    ]
-  );
-
-  /*
-   * Wait until the JSON-RPC endpoint responds.
-   */
-  await step(
-    'chain started',
-    () =>
-      wait('chain', async () => {
-        const response = await fetch(RPC, {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-          },
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'eth_chainId',
-            params: [],
-          }),
-        });
-
-        return response.ok;
-      })
-  );
-
-  /*
-   * Start mock IPFS.
-   */
-  spawnK(
-    'node',
-    ['tools/ipfs-mock.mjs']
-  );
-
-  /*
-   * Wait until IPFS responds.
-   */
-  await step(
-    'IPFS (mock) started',
-    () =>
-      wait('ipfs', async () => {
-        const response = await fetch(
-          `${IPFS}/api/v0/version`,
-          {
-            method: 'POST',
-          }
-        );
-
-        return response.ok;
-      })
-  );
-
-  /*
-   * Deploy contract.
-   */
-  await step(
-    'contract deployed',
-    () =>
-      once(
-        'npm',
-        [
-          '--prefix',
-          'contracts',
-          'run',
-          'deploy',
-        ]
-      )
-  );
-
-  /*
-   * Seed demo data.
-   */
-  await step(
-    'demo data seeded',
-    () =>
-      once(
-        'npm',
-        [
-          '--prefix',
-          'contracts',
-          'run',
-          'seed',
-        ]
-      )
-  );
-
-  /*
-   * Read deployment information.
-   */
-  const dep = JSON.parse(
+function readDeployment() {
+  return JSON.parse(
     readFileSync(
-      join(
-        e.root,
-        'web/public/deployment/deployment.json'
-      ),
+      deploymentPath,
       'utf8'
     )
   );
+}
 
-  /*
-   * Verify deterministic deployment address.
-   */
-  if (dep.address !== EXPECTED_ADDRESS) {
-    throw new Error(
-      `deployment address ${dep.address} differs from the deterministic ${EXPECTED_ADDRESS}`
-    );
-  }
-
-  /*
-   * Connect to the local chain.
-   */
-  const provider = new JsonRpcProvider(RPC);
-
-  const registry = new Contract(
-    dep.address,
-    dep.abi,
-    provider
-  );
-
-  /*
-   * Read CertificateIssued events.
-   */
-  const logs =
-    await registry.queryFilter(
-      registry.filters.CertificateIssued()
-    );
-
-  if (logs.length !== 3) {
-    throw new Error(
-      `expected 3 seeded credentials, found ${logs.length}`
-    );
-  }
-
-  const rows = [];
-
-  /*
-   * Verify every seeded certificate and
-   * cross-check the IPFS manifest.
-   */
-  for (const l of logs) {
-    const [status, cert] =
-      await registry.verify(
-        l.args.docHash
+async function writeConfig() {
+  await new Promise(
+    (resolvePromise, rejectPromise) => {
+      const child = spawnProcess(
+        'config',
+        process.execPath,
+        [
+          join(
+            ROOT,
+            'tools',
+            'write-config.mjs'
+          ),
+          '--mode',
+          mode,
+        ],
+        {
+          cwd: ROOT,
+        }
       );
 
-    const manifestResponse =
-      await fetch(
-        `http://127.0.0.1:${e.ports.gateway}/ipfs/${cert.metadataCID}`
-      );
-
-    if (!manifestResponse.ok) {
-      throw new Error(
-        `failed to fetch IPFS manifest for ${cert.metadataCID}: ${manifestResponse.status}`
+      child.once(
+        'exit',
+        (code) => {
+          if (code === 0) {
+            resolvePromise();
+          } else {
+            rejectPromise(
+              new Error(
+                `write-config exited with code ${code}`
+              )
+            );
+          }
+        }
       );
     }
+  );
+}
 
-    const manifest =
-      await manifestResponse.json();
+async function main() {
 
+  await writeConfig();
+
+  console.log(
+    `Sourcify smoke test (${mode})`
+  );
+
+  console.log(
+    `RPC: ${RPC}`
+  );
+
+  if (mode === 'development') {
+    console.log(
+      '\nStarting development Hardhat node...'
+    );
+
+    npmRun(
+      'chain',
+      contractsDir,
+      'node'
+    );
+
+    await waitFor(
+      'development RPC',
+      rpcReady
+    );
+
+    console.log(
+      'Development RPC ready.'
+    );
+
+    console.log(
+      'Starting development IPFS mock...'
+    );
+
+    spawnProcess(
+      'ipfs',
+      process.execPath,
+      [
+        join(
+          ROOT,
+          'tools',
+          'ipfs-mock.mjs'
+        ),
+      ],
+      { cwd: ROOT }
+    );
+
+    await waitFor(
+      'development IPFS',
+      ipfsReady
+    );
+  } else {
+    console.log(
+      '\nUsing existing persistent services...'
+    );
+
+    await waitFor(
+      'persistent Geth',
+      rpcReady
+    );
+
+    await waitFor(
+      'persistent IPFS',
+      ipfsReady
+    );
+  }
+
+  // // Generate config for this runtime.
+  // await npmRun(
+  //   'config',
+  //   ROOT,
+  //   // write-config is a root-level tool, so invoke Node directly.
+  //   // This placeholder is not used through npm.
+  //   'noop',
+  //   false
+  // );
+
+  // Deploy/Seed Verification
+  console.log('\nDeploying/reusing registry...');
+
+  await npmRun(
+    'deploy',
+    contractsDir,
+    mode === 'persistent'
+      ? 'deploy:persistent'
+      : 'deploy',
+    true
+  );
+  
+  console.log('\nSeeding demo credentials...');
+  
+  await npmRun(
+    'seed',
+    contractsDir,
+    mode === 'persistent'
+      ? 'seed:persistent'
+      : 'seed',
+    true
+  );
+  
+  const deployment = readDeployment();
+  
+  const provider =
+    new JsonRpcProvider(RPC);
+  
+  const registry =
+    new Contract(
+      deployment.address,
+      deployment.abi,
+      provider
+    );
+  
+  const demo = expectedDemo();
+  const rows = [];
+  
+  for (const entry of demo) {
+    const hash = docHashFor(entry);
+  
+    const [
+      status,
+      certificate,
+    ] = await registry.verify(hash);
+  
     if (
-      manifest.docHash !==
-      l.args.docHash
+      Number(status) !==
+      entry.expectedStatus
     ) {
       throw new Error(
-        'manifest/docHash mismatch'
+        `${entry.name}: expected status ` +
+        `${entry.expectedStatus}, got ${status}`
       );
     }
-
+  
+    const response = await fetch(
+      `${GATEWAY}/${certificate.metadataCID}`
+    );
+  
+    if (!response.ok) {
+      throw new Error(
+        `${entry.name}: failed to fetch IPFS metadata ` +
+        `(${response.status})`
+      );
+    }
+  
+    const manifest =
+      await response.json();
+  
+    if (manifest.docHash !== hash) {
+      throw new Error(
+        `${entry.name}: metadata/docHash mismatch`
+      );
+    }
+  
     rows.push([
-      l.args.docHash,
-      cert.metadataCID,
+      hash,
+      certificate.metadataCID,
       Number(status),
     ]);
-  }
-
-  await step(
-    `3 credentials verified on-chain and cross-checked with IPFS (statuses ${rows
-      .map((r) => r[2])
-      .join(',')})`,
-    async () => {}
-  );
-
-  /*
-   * Expected:
-   *
-   * 1 = valid
-   * 1 = valid
-   * 2 = revoked
-   */
-  if (
-    rows.map((r) => r[2]).join() !==
-    '1,1,2'
-  ) {
-    throw new Error(
-      'unexpected statuses (want valid, valid, revoked)'
+  
+    console.log(
+      `  ok    ${entry.name} → status ${status}`
     );
   }
-
-  /*
-   * Produce deterministic fingerprint.
-   */
+  
   const fingerprint =
     createHash('sha256')
       .update(
         JSON.stringify([
-          dep.address,
+          deployment.address,
           rows,
         ])
       )
       .digest('hex')
       .slice(0, 16);
-
+  
   console.log(
-    `\nPASS  fingerprint ${fingerprint}`
+    `\nPASS  ${mode} smoke test`
   );
-} catch (err) {
+  
+  console.log(
+    `PASS  fingerprint ${fingerprint}`
+  );
+  
+  await stopDevelopmentChildren();
+}
+
+main().catch(async (error) => {
   console.error(
     `\nFAIL  ${
-      err instanceof Error
-        ? err.message
-        : String(err)
+      error instanceof Error
+        ? error.message
+        : String(error)
     }`
   );
 
-  code = 1;
-} finally {
-  /*
-   * IMPORTANT:
-   * Kill Hardhat + npm + IPFS before exiting.
-   */
-  await stop();
-
-  await sleep(100);
-
-  process.exit(code);
-}
+  await stopDevelopmentChildren();
+  process.exit(1);
+});
