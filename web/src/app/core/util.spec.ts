@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractDocHash, formatBytes, short, withTimeout, TimeoutError } from './util';
+import { extractDocHash, formatBytes, previewKind, short, withTimeout, TimeoutError } from './util';
 
 const H = '0x' + 'a1'.repeat(32);
 
@@ -24,5 +24,14 @@ describe('util', () => {
   it('times out slow promises', async () => {
     await expect(withTimeout(new Promise(() => undefined), 20)).rejects.toBeInstanceOf(TimeoutError);
     await expect(withTimeout(Promise.resolve(7), 20)).resolves.toBe(7);
+  });
+  it('classifies files for preview, falling back to the extension when the type is empty', () => {
+    expect(previewKind('a.png', 'image/png')).toBe('image');
+    expect(previewKind('scan.JPG', '')).toBe('image');
+    expect(previewKind('cert.pdf', 'application/pdf')).toBe('pdf');
+    expect(previewKind('cert.pdf', '')).toBe('pdf');
+    expect(previewKind('notes.txt', 'text/plain')).toBe('text');
+    expect(previewKind('page.html', 'text/html')).toBe('text'); // shown as source, never rendered
+    expect(previewKind('data.bin', 'application/octet-stream')).toBe('other');
   });
 });

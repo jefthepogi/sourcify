@@ -45,7 +45,11 @@
           <label class="drop" [class.invalid]="err('file')" for="file"><app-icon name="file-up" [size]="18" />
             @if (file(); as f) { <span><b>{{ f.name }}</b> · {{ formatBytes(f.size) }}</span> } @else { <span>Choose the final, unstamped certificate (PDF or image)</span> }
             <input id="file" type="file" class="sr-only" (change)="onFile($event)" /></label>
-          @if (err('file')) { <div class="err">{{ err('file') }}</div> }
+          @if (err('file')) { 
+            <div class="err">{{ err('file') }}</div> }
+          @if (file(); as f) {
+            <app-file-preview [file]="f" (remove)="clearFile()" />
+          }
         </div>
         <div>
           <div class="label">docHash (Keccak-256)</div>

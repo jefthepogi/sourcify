@@ -13,6 +13,7 @@ import { SCHEMA_ID, deployment } from '../../core/runtime';
 import { fmtTime, formatBytes, keccakOfBlob, randomSalt, short } from '../../core/util';
 import { ProgressModalComponent } from './progress-modal.component';
 import { ReviewModalComponent } from './review-modal.component';
+import { FilePreviewComponent } from '../../core/file-preview.component';
 
 // TYPES: TO BE CHANGED according to actual existing categories issued by the SOURCE org
 const TYPES = ['Bachelor of Science', 'Master of Science', 'Doctor of Philosophy', 'Certificate of Completion', 'Research Fellowship', 'Safety Certification'];
@@ -23,7 +24,14 @@ const DID_RE = /^did:[a-z0-9]+:[A-Za-z0-9._:%-]+$/;
 @Component({
   selector: 'app-issue',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, IconComponent, ReviewModalComponent, ProgressModalComponent],
+  imports: [
+    FormsModule,
+    RouterLink,
+    IconComponent,
+    FilePreviewComponent,
+    ReviewModalComponent,
+    ProgressModalComponent,
+  ],
   templateUrl: './issue.component.html',
   styleUrl: './issue.component.css',
 })
