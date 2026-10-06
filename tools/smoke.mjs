@@ -153,16 +153,32 @@ function spawnProcess(
   args,
   options = {}
 ) {
+  const longRunning =
+    options.longRunning === true;
+
+  const spawnOptions = {
+    cwd: ROOT,
+    env: childEnv,
+    shell: false,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    ...options,
+  };
+
+  delete spawnOptions.longRunning;
+
+  // On POSIX, create a new process group for long-running
+  // services so the entire descendant tree can be terminated.
+  if (
+    process.platform !== 'win32' &&
+    longRunning
+  ) {
+    spawnOptions.detached = true;
+  }
+
   const child = spawn(
     command,
     args,
-    {
-      cwd: ROOT,
-      env: childEnv,
-      shell: false,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      ...options,
-    }
+    spawnOptions
   );
 
   child.stdout.on('data', (data) => {
@@ -182,12 +198,13 @@ function spawnProcess(
   });
 
   child.on('error', (error) => {
-    console.error(
-      `[${name}] ${error.message}`
-    );
+    console.error(`[${name}] ${error.message}`);
   });
 
-  children.push(child);
+  children.push({
+    child,
+    longRunning,
+  });
 
   return child;
 }
@@ -196,7 +213,8 @@ function npmRun(
   name,
   cwd,
   script,
-  waitForExit = false
+  waitForExit = false,
+  longRunning = false
 ) {
   const args = [
     npmCli,
@@ -204,38 +222,44 @@ function npmRun(
     script,
   ];
 
-  if (!waitForExit) {
-    return spawnProcess(
-      name,
-      process.execPath,
-      args,
-      { cwd }
+  if (waitForExit) {
+    return new Promise(
+      (resolvePromise, rejectPromise) => {
+        const child = spawnProcess(
+          name,
+          process.execPath,
+          args,
+          {
+            cwd,
+            longRunning: false,
+          }
+        );
+
+        child.once(
+          'exit',
+          (code) => {
+            if (code === 0) {
+              resolvePromise();
+            } else {
+              rejectPromise(
+                new Error(
+                  `${name} exited with code ${code}`
+                )
+              );
+            }
+          }
+        );
+      }
     );
   }
 
-  return new Promise(
-    (resolvePromise, rejectPromise) => {
-      const child = spawnProcess(
-        name,
-        process.execPath,
-        args,
-        { cwd }
-      );
-
-      child.once(
-        'exit',
-        (code) => {
-          if (code === 0) {
-            resolvePromise();
-          } else {
-            rejectPromise(
-              new Error(
-                `${name} exited with code ${code}`
-              )
-            );
-          }
-        }
-      );
+  return spawnProcess(
+    name,
+    process.execPath,
+    args,
+    {
+      cwd,
+      longRunning,
     }
   );
 }
@@ -430,7 +454,7 @@ async function writeConfig() {
           mode,
         ],
         {
-          cwd: ROOT,
+          cwd: ROOT, longRunning: false
         }
       );
 
@@ -472,9 +496,10 @@ async function main() {
     npmRun(
       'chain',
       contractsDir,
-      'node'
+      'node',
+      false,
+      true
     );
-
     await waitFor(
       'development RPC',
       rpcReady
@@ -498,7 +523,7 @@ async function main() {
           'ipfs-mock.mjs'
         ),
       ],
-      { cwd: ROOT }
+      { cwd: ROOT, longRunning: true }
     );
 
     await waitFor(
@@ -540,7 +565,8 @@ async function main() {
     mode === 'persistent'
       ? 'deploy:persistent'
       : 'deploy',
-    true
+    true,
+    false
   );
   
   console.log('\nSeeding demo credentials...');
@@ -551,7 +577,8 @@ async function main() {
     mode === 'persistent'
       ? 'seed:persistent'
       : 'seed',
-    true
+    true,
+    false
   );
   
   const deployment = readDeployment();
