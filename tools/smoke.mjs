@@ -14,7 +14,7 @@
 //   assumes Geth + Kubo are already running, deploys/reuses, seeds,
 //   verifies, and leaves the persistent infrastructure untouched.
 
-import { spawn } from 'node:child_process';
+import { spawn, execFile } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -289,18 +289,79 @@ async function ipfsReady() {
   return response.ok;
 }
 
-async function stopDevelopmentChildren() {
-  for (const child of children) {
-    if (!child || child.exitCode !== null) {
-      continue;
-    }
-
-    try {
-      child.kill();
-    } catch {
-      // Already terminated.
-    }
+async function killProcessTree(child) {
+  if (!child || child.exitCode !== null) {
+    return;
   }
+
+  if (process.platform === 'win32') {
+    await new Promise((resolve) => {
+      execFile(
+        'taskkill',
+        [
+          '/pid',
+          String(child.pid),
+          '/t',
+          '/f',
+        ],
+        () => resolve()
+      );
+    });
+
+    return;
+  }
+
+  try {
+    child.kill('SIGTERM');
+  } catch {
+    // Process may already be gone.
+  }
+}
+
+async function stopChildren() {
+  const running = children.filter(
+    (child) =>
+      child &&
+      child.exitCode === null
+  );
+
+  if (running.length === 0) {
+    return;
+  }
+
+  await Promise.all(
+    running.map((child) =>
+      killProcessTree(child)
+    )
+  );
+
+  // Wait briefly for child exit events / sockets to close.
+  await Promise.all(
+    running.map(
+      (child) =>
+        new Promise((resolve) => {
+          if (child.exitCode !== null) {
+            resolve();
+            return;
+          }
+
+          const timer = setTimeout(
+            resolve,
+            1500
+          );
+
+          child.once('exit', () => {
+            clearTimeout(timer);
+            resolve();
+          });
+
+          child.once('error', () => {
+            clearTimeout(timer);
+            resolve();
+          });
+        })
+    )
+  );
 }
 
 function expectedDemo() {
@@ -576,7 +637,7 @@ async function main() {
     `PASS  fingerprint ${fingerprint}`
   );
   
-  await stopDevelopmentChildren();
+  await stopChildren();
 }
 
 main().catch(async (error) => {
@@ -588,6 +649,6 @@ main().catch(async (error) => {
     }`
   );
 
-  await stopDevelopmentChildren();
+  await stopChildren();
   process.exit(1);
 });

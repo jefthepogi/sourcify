@@ -1,8 +1,8 @@
 {
-  "mode": "persistent",
-  "rpcUrl": "http://127.0.0.1:7545",
+  "mode": "development",
+  "rpcUrl": "http://127.0.0.1:8545",
   "chainId": 1337,
-  "chainName": "Local Persistent Geth",
+  "chainName": "Local Hardhat",
   "ipfsApi": "http://127.0.0.1:5001",
   "ipfsGateway": "http://127.0.0.1:8080/ipfs",
   "serviceTimeoutMs": 3500,
