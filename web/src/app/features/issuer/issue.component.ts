@@ -114,6 +114,12 @@ export class IssueComponent {
     this.file.set(f);
     this.docHash.set(f ? await keccakOfBlob(f) : '');
   }
+
+  protected clearFile(): void {
+    this.file.set(null);
+    this.docHash.set('');
+  }  
+
   protected input(sig: { set(v: string): void }, ev: Event): void { sig.set((ev.target as HTMLInputElement).value); }
 
   protected buildManifest(documentCID: string): CredentialManifest {

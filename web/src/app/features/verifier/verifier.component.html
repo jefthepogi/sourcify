@@ -1,59 +1,63 @@
 <div class="stage">
-<div class="phone" [style.--bg]="view() === 'result' ? copy().bg : null" [class.tinted]="view() === 'result'">
-  <header class="bar"><app-brand /><span class="tag">{{ view() === 'result' ? 'Verification result' : view() === 'manual' ? 'Manual entry' : 'Verify credential' }}</span></header>
+  <a class="back" routerLink="/issuer/issue">
+    <app-icon name="chevron-down" [size]="14" />
+    Issuer console
+  </a>
+  <div class="phone" [style.--bg]="view() === 'result' ? copy().bg : null" [class.tinted]="view() === 'result'">
+    <header class="bar"><app-brand /><span class="tag">{{ view() === 'result' ? 'Verification result' : view() === 'manual' ? 'Manual entry' : 'Verify credential' }}</span></header>
 
-  @switch (view()) {
-    @case ('scan') {
-      <section class="scan">
-        <div class="cam">
-          <video #video playsinline muted aria-label="Camera preview"></video>
-          <div class="shade"></div>
-          <div class="util"><span class="live"><span class="dot"></span>Camera live</span>
-            @if (scanner_torch()) { <button class="flash" (click)="toggleTorch()" [attr.aria-pressed]="torch()" aria-label="Toggle flash"><app-icon name="zap" [size]="16" /></button> }</div>
-          <div class="frame" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-          <div class="guide"><app-icon name="scan-line" [size]="24" /><p><b>Align the QR code within the frame</b></p><p class="s">Hold steady. It scans automatically.</p></div>
-        </div>
-        <button class="alt" (click)="toManual(false)"><app-icon name="keyboard" [size]="19" />Enter hash manually</button>
-        <label class="alt file"><app-icon name="file-up" [size]="19" />Check a certificate file<input type="file" class="sr-only" (change)="onFile($event)" /></label>
-        <p class="priv">The camera feed is processed on this device and never uploaded.</p>
-      </section>
-    }
-    @case ('manual') {
-      <section class="manual">
-        @if (cameraError()) { <div class="alert"><span class="ai"><app-icon name="camera-off" [size]="18" /></span><div><b>Camera unavailable</b><p>Paste the document hash to continue.</p></div></div> }
-        @if (error()) { <div class="alert bad" role="alert"><span class="ai"><app-icon name="triangle-alert" [size]="18" /></span><div><p>{{ error() }}</p></div></div> }
-        <h1>Verify by docHash</h1><p class="intro">Use the 66-character hash printed on the credential or supplied by the issuer.</p>
-        <div class="fl"><label for="h"><b>Document hash</b><span class="mono rq">REQUIRED</span></label>
-          <div class="ta"><textarea id="h" class="mono" rows="3" spellcheck="false" placeholder="0x… Paste docHash here" [value]="raw()" (input)="raw.set($any($event.target).value)"></textarea>
-            <button class="paste" (click)="paste()"><app-icon name="clipboard" [size]="14" />Paste</button></div>
-          <p class="ex mono">Example: 0x74f6…a1c9</p></div>
-        <button class="go" (click)="submitManual()"><app-icon name="search" [size]="18" />Verify Credential</button>
-        <label class="go ghost"><app-icon name="file-up" [size]="18" />Or check a certificate file<input type="file" class="sr-only" (change)="onFile($event)" /></label>
-        @if (canScan) { <button class="or" (click)="startScan()"><i></i><span>or enable camera access</span><i></i></button> }
-      </section>
-    }
-    @case ('loading') { <section class="center" aria-live="polite"><div class="spin"></div><p>Checking the registry…</p></section> }
-    @case ('result') {
-      @if (result(); as r) {
-        <section class="res">
-          <div class="sum"><span class="big"><app-icon [name]="copy().icon" [size]="42" [stroke]="2.5" /></span><h1>{{ copy().word }}</h1><p>{{ copy().line }}</p></div>
-          @if (r.status === 'revoked') { <div class="notice"><app-icon name="triangle-alert" [size]="22" /><p>Revoked on {{ fmtDate(r.revokedAt) }}. Do not rely on this credential.</p></div> }
-          @if (r.status !== 'notfound') {
-            <dl class="rec">
-              <dt>Credential</dt><dd>{{ manifest()?.credential?.program ?? '—' }}</dd>
-              <dt>Recipient</dt><dd>{{ manifest()?.recipient?.name ?? '—' }}</dd>
-              <dt>Issuer</dt><dd>{{ r.issuerLabel || short(r.issuer, 6, 4) }}</dd>
-              <dt>Issued</dt><dd>{{ fmtDate(r.issuedAt) }}</dd>
-              @if (r.expiresAt) { <dt>Expires</dt><dd>{{ fmtDate(r.expiresAt) }}</dd> }
-              <dt>docHash</dt><dd class="mono">{{ short(r.docHash, 6, 4) }}</dd>
-            </dl>
-            <p class="proof mono"><app-icon name="link" [size]="14" />{{ cfg.chainName }} · Chain {{ cfg.chainId }}@if (anchor()) { · Block {{ anchor()!.blockNumber }} }</p>
-            <p class="integ" [class.warnc]="integrity() === 'mismatch'"><app-icon [name]="integrity() === 'ok' ? 'shield-check' : integrity() === 'mismatch' ? 'triangle-alert' : 'clock'" [size]="14" />{{ integrityText() }}</p>
-          } @else { <p class="nf mono">{{ short(r.docHash, 10, 8) }}</p> }
-          <button class="again" (click)="again()"><app-icon name="scan-line" [size]="18" />Scan Another</button>
+    @switch (view()) {
+      @case ('scan') {
+        <section class="scan">
+          <div class="cam">
+            <video #video playsinline muted aria-label="Camera preview"></video>
+            <div class="shade"></div>
+            <div class="util"><span class="live"><span class="dot"></span>Camera live</span>
+              @if (scanner_torch()) { <button class="flash" (click)="toggleTorch()" [attr.aria-pressed]="torch()" aria-label="Toggle flash"><app-icon name="zap" [size]="16" /></button> }</div>
+            <div class="frame" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            <div class="guide"><app-icon name="scan-line" [size]="24" /><p><b>Align the QR code within the frame</b></p><p class="s">Hold steady. It scans automatically.</p></div>
+          </div>
+          <button class="alt" (click)="toManual(false)"><app-icon name="keyboard" [size]="19" />Enter hash manually</button>
+          <label class="alt file"><app-icon name="file-up" [size]="19" />Check a certificate file<input type="file" class="sr-only" (change)="onFile($event)" /></label>
+          <p class="priv">The camera feed is processed on this device and never uploaded.</p>
         </section>
       }
+      @case ('manual') {
+        <section class="manual">
+          @if (cameraError()) { <div class="alert"><span class="ai"><app-icon name="camera-off" [size]="18" /></span><div><b>Camera unavailable</b><p>Paste the document hash to continue.</p></div></div> }
+          @if (error()) { <div class="alert bad" role="alert"><span class="ai"><app-icon name="triangle-alert" [size]="18" /></span><div><p>{{ error() }}</p></div></div> }
+          <h1>Verify by docHash</h1><p class="intro">Use the 66-character hash printed on the credential or supplied by the issuer.</p>
+          <div class="fl"><label for="h"><b>Document hash</b><span class="mono rq">REQUIRED</span></label>
+            <div class="ta"><textarea id="h" class="mono" rows="3" spellcheck="false" placeholder="0x… Paste docHash here" [value]="raw()" (input)="raw.set($any($event.target).value)"></textarea>
+              <button class="paste" (click)="paste()"><app-icon name="clipboard" [size]="14" />Paste</button></div>
+            <p class="ex mono">Example: 0x74f6…a1c9</p></div>
+          <button class="go" (click)="submitManual()"><app-icon name="search" [size]="18" />Verify Credential</button>
+          <label class="go ghost"><app-icon name="file-up" [size]="18" />Or check a certificate file<input type="file" class="sr-only" (change)="onFile($event)" /></label>
+          @if (canScan) { <button class="or" (click)="startScan()"><i></i><span>or enable camera access</span><i></i></button> }
+        </section>
+      }
+      @case ('loading') { <section class="center" aria-live="polite"><div class="spin"></div><p>Checking the registry…</p></section> }
+      @case ('result') {
+        @if (result(); as r) {
+          <section class="res">
+            <div class="sum"><span class="big"><app-icon [name]="copy().icon" [size]="42" [stroke]="2.5" /></span><h1>{{ copy().word }}</h1><p>{{ copy().line }}</p></div>
+            @if (r.status === 'revoked') { <div class="notice"><app-icon name="triangle-alert" [size]="22" /><p>Revoked on {{ fmtDate(r.revokedAt) }}. Do not rely on this credential.</p></div> }
+            @if (r.status !== 'notfound') {
+              <dl class="rec">
+                <dt>Credential</dt><dd>{{ manifest()?.credential?.program ?? '—' }}</dd>
+                <dt>Recipient</dt><dd>{{ manifest()?.recipient?.name ?? '—' }}</dd>
+                <dt>Issuer</dt><dd>{{ r.issuerLabel || short(r.issuer, 6, 4) }}</dd>
+                <dt>Issued</dt><dd>{{ fmtDate(r.issuedAt) }}</dd>
+                @if (r.expiresAt) { <dt>Expires</dt><dd>{{ fmtDate(r.expiresAt) }}</dd> }
+                <dt>docHash</dt><dd class="mono">{{ short(r.docHash, 6, 4) }}</dd>
+              </dl>
+              <p class="proof mono"><app-icon name="link" [size]="14" />{{ cfg.chainName }} · Chain {{ cfg.chainId }}@if (anchor()) { · Block {{ anchor()!.blockNumber }} }</p>
+              <p class="integ" [class.warnc]="integrity() === 'mismatch'"><app-icon [name]="integrity() === 'ok' ? 'shield-check' : integrity() === 'mismatch' ? 'triangle-alert' : 'clock'" [size]="14" />{{ integrityText() }}</p>
+            } @else { <p class="nf mono">{{ short(r.docHash, 10, 8) }}</p> }
+            <button class="again" (click)="again()"><app-icon name="scan-line" [size]="18" />Scan Another</button>
+          </section>
+        }
+      }
     }
-  }
-</div>
+  </div>
 </div>

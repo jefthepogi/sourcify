@@ -27,8 +27,18 @@
     <nav aria-label="Primary">
       <p class="section">Workspace</p>
       @for (n of nav; track n.path) {
-        <a [routerLink]="n.path" routerLinkActive="active" class="nav"><app-icon [name]="n.icon" [size]="17" /><span>{{ n.label }}</span><i></i></a>
+        <a [routerLink]="n.path" routerLinkActive="active" class="nav">
+          <app-icon [name]="n.icon" [size]="17" />
+          <span>{{ n.label }}</span>
+          <i></i>
+        </a>
       }
+      <p class="section" style="margin-top:14px">Quick access</p>
+      <a routerLink="/verify" class="nav quick" title="Open the public verifier">
+        <app-icon name="scan-line" [size]="17" />
+        <span >Verifier</span>
+        <app-icon name="link" [size]="13" />
+      </a>
     </nav>
     <div class="env">
       <div class="env-h"><b>Local services</b><span class="badge upper" [class.ok]="health.allUp()" [class.bad]="health.blocking()"><span class="dot"></span>{{ stateLabel() }}</span></div>

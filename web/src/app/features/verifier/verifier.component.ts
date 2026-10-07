@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, computed, inject, input, signal, viewChild } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { BrandComponent } from '../../core/brand.component';
 import { HealthService } from '../../core/health.service';
 import { IconComponent } from '../../core/icon.component';
@@ -22,7 +22,7 @@ const COPY = {
 @Component({
   selector: 'app-verifier',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent, BrandComponent],
+  imports: [IconComponent, BrandComponent, RouterLink],
   templateUrl: './verifier.component.html',
   styleUrl: './verifier.component.css',
 })
