@@ -702,3 +702,4 @@ Hardware- and browser-specific integrations such as real camera QR scanning and 
 The architecture and implementation are documented further in:
 
 [`docs/ARCHITECTURE_LOG.md`](docs/ARCHITECTURE_LOG.md)
+[`docs/SETUP.md`](docs/SETUP.md)
